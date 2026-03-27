@@ -1,0 +1,66 @@
+version: '3.8'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Kubernetes Attack Path Visualizer — Neo4j + GDS Stack
+#
+# Usage:
+#   docker-compose up -d          # start in background
+#   docker-compose logs -f neo4j  # watch logs
+#   docker-compose down -v        # stop + wipe volumes
+#
+# Verify GDS is active in Neo4j Browser:
+#   RETURN gds.version()
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  neo4j:
+    image: neo4j:5.15.0
+    container_name: k8s-attack-neo4j
+    restart: unless-stopped
+
+    ports:
+      - "7474:7474"   # Neo4j Browser + HTTP API
+      - "7687:7687"   # Bolt protocol (driver connects here)
+
+    environment:
+      # ── Auth ────────────────────────────────────────────────────────────────
+      NEO4J_AUTH: neo4j/password
+
+      # ── Plugins (auto-downloaded on first start) ──────────────────────────
+      # GDS is REQUIRED for Dijkstra / betweenness / graph projection.
+      # APOC provides utility procedures used in some queries.
+      NEO4J_PLUGINS: '["graph-data-science", "apoc"]'
+
+      # ── Procedure security (allow GDS + APOC to run) ─────────────────────
+      NEO4J_dbms_security_procedures_unrestricted: "gds.*,apoc.*"
+      NEO4J_dbms_security_procedures_allowlist: "gds.*,apoc.*"
+
+      # ── Disable strict config validation ─────────────────────────────────
+      # Prevents Neo4j from refusing to start when a plugin injects an
+      # unrecognised config key (e.g. from older APOC/GDS defaults).
+      NEO4J_server_config_strict__validation_enabled: "false"
+
+    volumes:
+      - neo4j_data:/data         # persists the database between restarts
+      - neo4j_logs:/logs         # container logs
+      - neo4j_plugins:/plugins   # plugin JARs downloaded here
+
+    healthcheck:
+      # cypher-shell returns 0 only when the DB is fully up and accepting queries
+      test:
+        - "CMD"
+        - "cypher-shell"
+        - "-u"
+        - "neo4j"
+        - "-p"
+        - "password"
+        - "RETURN gds.version() AS v"
+      interval: 20s
+      timeout: 15s
+      retries: 12
+      start_period: 60s   # GDS download can take a moment on first boot
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_plugins:
