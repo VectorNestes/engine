@@ -1,0 +1,489 @@
+{
+  "pods": {
+    "apiVersion": "v1",
+    "kind": "PodList",
+    "items": [
+      {
+        "metadata": {
+          "name": "nginx-deployment-7fb96c846b-xk2hm",
+          "namespace": "default",
+          "labels": { "app": "nginx", "version": "1.21" }
+        },
+        "spec": {
+          "serviceAccountName": "nginx-sa",
+          "containers": [{ "name": "nginx", "image": "nginx:1.21.3" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "api-server-5d8f9b6c7-p4qrs",
+          "namespace": "production",
+          "labels": { "app": "api-server", "tier": "backend" }
+        },
+        "spec": {
+          "serviceAccountName": "api-sa",
+          "containers": [{ "name": "api", "image": "node:18.12.0" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "frontend-6c9d8f7b5-mn3op",
+          "namespace": "production",
+          "labels": { "app": "frontend", "tier": "frontend" }
+        },
+        "spec": {
+          "serviceAccountName": "frontend-sa",
+          "containers": [{ "name": "frontend", "image": "nginx:1.19.0" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "backend-worker-4b7c6d5e3-ab1cd",
+          "namespace": "production",
+          "labels": { "app": "backend", "tier": "backend" }
+        },
+        "spec": {
+          "serviceAccountName": "backend-sa",
+          "containers": [{ "name": "backend", "image": "python:3.9.7" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "db-client-3a6b5c4d2-ef7gh",
+          "namespace": "production",
+          "labels": { "app": "db-client", "tier": "data" }
+        },
+        "spec": {
+          "serviceAccountName": "db-sa",
+          "containers": [{ "name": "db-client", "image": "postgres:14.1" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "prometheus-7d5e4f3c1-ij9kl",
+          "namespace": "monitoring",
+          "labels": { "app": "prometheus", "component": "monitoring" }
+        },
+        "spec": {
+          "serviceAccountName": "monitoring-sa",
+          "containers": [{ "name": "prometheus", "image": "prom/prometheus:v2.40.0" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "grafana-2c8d7e6f4-mn1op",
+          "namespace": "monitoring",
+          "labels": { "app": "grafana", "component": "monitoring" }
+        },
+        "spec": {
+          "serviceAccountName": "monitoring-sa",
+          "containers": [{ "name": "grafana", "image": "grafana/grafana:9.0.0" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "redis-cache-1b9c8d7e5-qr3st",
+          "namespace": "default",
+          "labels": { "app": "redis", "tier": "cache" }
+        },
+        "spec": {
+          "serviceAccountName": "default",
+          "containers": [{ "name": "redis", "image": "redis:7.0.5" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "celery-worker-9e2f1a3b4-uv5wx",
+          "namespace": "production",
+          "labels": { "app": "worker", "tier": "async" }
+        },
+        "spec": {
+          "serviceAccountName": "worker-sa",
+          "containers": [{ "name": "worker", "image": "python:3.9.7" }]
+        },
+        "status": { "phase": "Running" }
+      },
+      {
+        "metadata": {
+          "name": "kubectl-admin-8f3e2d1c9-yz7ab",
+          "namespace": "kube-system",
+          "labels": { "app": "kubectl-admin", "component": "admin" }
+        },
+        "spec": {
+          "serviceAccountName": "admin-sa",
+          "containers": [{ "name": "kubectl", "image": "bitnami/kubectl:1.25.0" }]
+        },
+        "status": { "phase": "Running" }
+      }
+    ]
+  },
+
+  "serviceAccounts": {
+    "apiVersion": "v1",
+    "kind": "ServiceAccountList",
+    "items": [
+      {
+        "metadata": { "name": "nginx-sa", "namespace": "default" }
+      },
+      {
+        "metadata": { "name": "default", "namespace": "default" }
+      },
+      {
+        "metadata": { "name": "api-sa", "namespace": "production" }
+      },
+      {
+        "metadata": { "name": "frontend-sa", "namespace": "production" }
+      },
+      {
+        "metadata": { "name": "backend-sa", "namespace": "production" }
+      },
+      {
+        "metadata": { "name": "db-sa", "namespace": "production" }
+      },
+      {
+        "metadata": { "name": "worker-sa", "namespace": "production" }
+      },
+      {
+        "metadata": { "name": "monitoring-sa", "namespace": "monitoring" }
+      },
+      {
+        "metadata": { "name": "admin-sa", "namespace": "kube-system" }
+      }
+    ]
+  },
+
+  "roles": {
+    "apiVersion": "rbac.authorization.k8s.io/v1",
+    "kind": "RoleList",
+    "items": [
+      {
+        "metadata": { "name": "secret-reader", "namespace": "default" },
+        "rules": [
+          {
+            "apiGroups": [""],
+            "resources": ["secrets"],
+            "verbs": ["get", "list", "watch"]
+          }
+        ]
+      },
+      {
+        "metadata": { "name": "configmap-admin", "namespace": "production" },
+        "rules": [
+          {
+            "apiGroups": [""],
+            "resources": ["configmaps"],
+            "verbs": ["*"]
+          }
+        ]
+      },
+      {
+        "metadata": { "name": "pod-executor", "namespace": "production" },
+        "rules": [
+          {
+            "apiGroups": [""],
+            "resources": ["pods"],
+            "verbs": ["get", "list", "watch"]
+          },
+          {
+            "apiGroups": [""],
+            "resources": ["pods/exec"],
+            "verbs": ["create"]
+          }
+        ]
+      },
+      {
+        "metadata": { "name": "backend-role", "namespace": "production" },
+        "rules": [
+          {
+            "apiGroups": [""],
+            "resources": ["secrets"],
+            "verbs": ["get", "list", "update", "patch"]
+          },
+          {
+            "apiGroups": [""],
+            "resources": ["configmaps"],
+            "verbs": ["get", "list", "update"]
+          }
+        ]
+      },
+      {
+        "metadata": { "name": "monitoring-viewer", "namespace": "monitoring" },
+        "rules": [
+          {
+            "apiGroups": [""],
+            "resources": ["pods", "services", "endpoints"],
+            "verbs": ["get", "list", "watch"]
+          },
+          {
+            "apiGroups": [""],
+            "resources": ["secrets"],
+            "verbs": ["get"]
+          }
+        ]
+      }
+    ]
+  },
+
+  "clusterRoles": {
+    "apiVersion": "rbac.authorization.k8s.io/v1",
+    "kind": "ClusterRoleList",
+    "items": [
+      {
+        "metadata": { "name": "cluster-admin" },
+        "rules": [
+          {
+            "apiGroups": ["*"],
+            "resources": ["*"],
+            "verbs": ["*"]
+          }
+        ]
+      },
+      {
+        "metadata": { "name": "api-cluster-role" },
+        "rules": [
+          {
+            "apiGroups": [""],
+            "resources": ["secrets", "configmaps"],
+            "verbs": ["get", "list", "watch", "create", "update"]
+          }
+        ]
+      },
+      {
+        "metadata": { "name": "secret-manager" },
+        "rules": [
+          {
+            "apiGroups": [""],
+            "resources": ["secrets"],
+            "verbs": ["*"]
+          }
+        ]
+      }
+    ]
+  },
+
+  "roleBindings": {
+    "apiVersion": "rbac.authorization.k8s.io/v1",
+    "kind": "RoleBindingList",
+    "items": [
+      {
+        "metadata": { "name": "nginx-sa-secret-reader", "namespace": "default" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "nginx-sa", "namespace": "default" }
+        ],
+        "roleRef": { "kind": "Role", "apiGroup": "rbac.authorization.k8s.io", "name": "secret-reader" }
+      },
+      {
+        "metadata": { "name": "api-sa-configmap-admin", "namespace": "production" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "api-sa", "namespace": "production" }
+        ],
+        "roleRef": { "kind": "Role", "apiGroup": "rbac.authorization.k8s.io", "name": "configmap-admin" }
+      },
+      {
+        "metadata": { "name": "frontend-sa-pod-executor", "namespace": "production" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "frontend-sa", "namespace": "production" }
+        ],
+        "roleRef": { "kind": "Role", "apiGroup": "rbac.authorization.k8s.io", "name": "pod-executor" }
+      },
+      {
+        "metadata": { "name": "backend-sa-backend-role", "namespace": "production" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "backend-sa", "namespace": "production" }
+        ],
+        "roleRef": { "kind": "Role", "apiGroup": "rbac.authorization.k8s.io", "name": "backend-role" }
+      },
+      {
+        "metadata": { "name": "worker-sa-backend-role", "namespace": "production" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "worker-sa", "namespace": "production" }
+        ],
+        "roleRef": { "kind": "Role", "apiGroup": "rbac.authorization.k8s.io", "name": "backend-role" }
+      },
+      {
+        "metadata": { "name": "db-sa-backend-role", "namespace": "production" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "db-sa", "namespace": "production" }
+        ],
+        "roleRef": { "kind": "Role", "apiGroup": "rbac.authorization.k8s.io", "name": "backend-role" }
+      },
+      {
+        "metadata": { "name": "monitoring-sa-viewer", "namespace": "monitoring" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "monitoring-sa", "namespace": "monitoring" }
+        ],
+        "roleRef": { "kind": "Role", "apiGroup": "rbac.authorization.k8s.io", "name": "monitoring-viewer" }
+      }
+    ]
+  },
+
+  "clusterRoleBindings": {
+    "apiVersion": "rbac.authorization.k8s.io/v1",
+    "kind": "ClusterRoleBindingList",
+    "items": [
+      {
+        "metadata": { "name": "admin-sa-cluster-admin" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "admin-sa", "namespace": "kube-system" }
+        ],
+        "roleRef": { "kind": "ClusterRole", "apiGroup": "rbac.authorization.k8s.io", "name": "cluster-admin" }
+      },
+      {
+        "metadata": { "name": "api-sa-api-cluster-role" },
+        "subjects": [
+          { "kind": "ServiceAccount", "name": "api-sa", "namespace": "production" }
+        ],
+        "roleRef": { "kind": "ClusterRole", "apiGroup": "rbac.authorization.k8s.io", "name": "api-cluster-role" }
+      }
+    ]
+  },
+
+  "secrets": {
+    "apiVersion": "v1",
+    "kind": "SecretList",
+    "items": [
+      {
+        "metadata": {
+          "name": "db-credentials",
+          "namespace": "production",
+          "labels": { "sensitive": "true", "component": "database" }
+        },
+        "type": "Opaque"
+      },
+      {
+        "metadata": {
+          "name": "api-key",
+          "namespace": "production",
+          "labels": { "sensitive": "true", "component": "api" }
+        },
+        "type": "Opaque"
+      },
+      {
+        "metadata": {
+          "name": "tls-private-key",
+          "namespace": "default",
+          "labels": { "component": "tls" }
+        },
+        "type": "kubernetes.io/tls"
+      },
+      {
+        "metadata": {
+          "name": "admin-token",
+          "namespace": "kube-system",
+          "labels": { "sensitive": "true", "component": "admin" }
+        },
+        "type": "Opaque"
+      },
+      {
+        "metadata": {
+          "name": "jwt-secret",
+          "namespace": "production",
+          "labels": { "sensitive": "true", "component": "auth" }
+        },
+        "type": "Opaque"
+      },
+      {
+        "metadata": {
+          "name": "monitoring-credentials",
+          "namespace": "monitoring",
+          "labels": { "component": "monitoring" }
+        },
+        "type": "Opaque"
+      }
+    ]
+  },
+
+  "configMaps": {
+    "apiVersion": "v1",
+    "kind": "ConfigMapList",
+    "items": [
+      {
+        "metadata": { "name": "nginx-config", "namespace": "default" },
+        "data": { "nginx.conf": "worker_processes auto;" }
+      },
+      {
+        "metadata": { "name": "app-config", "namespace": "production" },
+        "data": { "LOG_LEVEL": "info", "FEATURE_FLAGS": "dark_mode=true" }
+      },
+      {
+        "metadata": {
+          "name": "db-config",
+          "namespace": "production",
+          "labels": { "component": "database" }
+        },
+        "data": {
+          "DB_HOST": "production-postgres.production.svc.cluster.local",
+          "DB_PORT": "5432",
+          "DB_NAME": "appdb"
+        }
+      },
+      {
+        "metadata": { "name": "monitoring-config", "namespace": "monitoring" },
+        "data": { "scrape_interval": "15s", "retention": "30d" }
+      }
+    ]
+  },
+
+  "services": {
+    "apiVersion": "v1",
+    "kind": "ServiceList",
+    "items": [
+      {
+        "metadata": {
+          "name": "nginx-lb",
+          "namespace": "default",
+          "labels": { "app": "nginx" }
+        },
+        "spec": {
+          "type": "LoadBalancer",
+          "selector": { "app": "nginx" },
+          "ports": [{ "port": 80, "targetPort": 80, "protocol": "TCP" }]
+        }
+      },
+      {
+        "metadata": {
+          "name": "api-lb",
+          "namespace": "production",
+          "labels": { "app": "api-server" }
+        },
+        "spec": {
+          "type": "LoadBalancer",
+          "selector": { "app": "api-server" },
+          "ports": [{ "port": 443, "targetPort": 8080, "protocol": "TCP" }]
+        }
+      },
+      {
+        "metadata": {
+          "name": "frontend-lb",
+          "namespace": "production",
+          "labels": { "app": "frontend" }
+        },
+        "spec": {
+          "type": "LoadBalancer",
+          "selector": { "app": "frontend" },
+          "ports": [{ "port": 80, "targetPort": 3000, "protocol": "TCP" }]
+        }
+      },
+      {
+        "metadata": {
+          "name": "backend-svc",
+          "namespace": "production",
+          "labels": { "app": "backend" }
+        },
+        "spec": {
+          "type": "ClusterIP",
+          "selector": { "app": "backend" },
+          "ports": [{ "port": 8000, "targetPort": 8000, "protocol": "TCP" }]
+        }
+      }
+    ]
+  }
+}

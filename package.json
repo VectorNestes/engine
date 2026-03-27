@@ -1,0 +1,28 @@
+{
+  "name": "k8s-attack-path-visualizer",
+  "version": "1.0.0",
+  "description": "Kubernetes RBAC Attack Path Visualizer — Hackathon Edition",
+  "main": "dist/cli/index.js",
+  "scripts": {
+    "build": "tsc",
+    "scan": "ts-node src/cli/index.ts scan",
+    "scan:mock": "ts-node src/cli/index.ts scan --mock",
+    "scan:mock:json": "ts-node src/cli/index.ts scan --mock --output cluster-graph.json",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "commander": "^11.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
