@@ -1,45 +1,75 @@
 {
-  "name": "k8s-attack-path-visualizer",
+  "name": "k8s-av",
   "version": "1.0.0",
-  "description": "Kubernetes RBAC Attack Path Visualizer — Hackathon Edition",
+  "description": "Kubernetes RBAC Attack Path Visualizer — scan your cluster, detect attack paths, visualize in a local UI",
+  "keywords": ["kubernetes", "k8s", "rbac", "security", "attack-path", "neo4j", "cli"],
+  "license": "MIT",
+  "homepage": "https://github.com/your-org/k8s-av#readme",
+  "repository": { "type": "git", "url": "https://github.com/your-org/k8s-av.git" },
+  "bugs": { "url": "https://github.com/your-org/k8s-av/issues" },
+
+  "bin": {
+    "k8s-av": "dist/cli/index.js"
+  },
+
   "main": "dist/cli/index.js",
-  "scripts": {
-    "build": "tsc",
-    "start": "ts-node src/cli/index.ts start",
-    "server": "ts-node src/server/server.ts",
-    "ingest": "ts-node src/cli/index.ts ingest --source mock",
-    "report": "ts-node src/cli/index.ts report --format text",
-    "scan": "ts-node src/cli/index.ts scan",
-    "scan:mock": "ts-node src/cli/index.ts scan --mock",
-    "scan:mock:json": "ts-node src/cli/index.ts scan --mock --output data/cluster-graph.json",
-    "typecheck": "tsc --noEmit",
-    "clean": "rimraf dist",
-    "db:generate": "ts-node src/cli/index.ts scan --mock --skip-cve --output data/cluster-graph.json",
-    "db:load": "ts-node src/db/loader.ts",
-    "db:load:mock": "npm run db:generate && ts-node src/db/loader.ts data/cluster-graph.json",
-    "db:load:wipe": "npm run db:generate && ts-node src/db/loader.ts data/cluster-graph.json --wipe",
-    "db:test": "ts-node src/db/test.ts",
-    "db:test:fresh": "ts-node src/db/test.ts --wipe",
-    "db:test:fast": "ts-node src/db/test.ts --skip-load"
-  },
-  "dependencies": {
-    "axios": "^1.6.8",
-    "commander": "^11.1.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "neo4j-driver": "^5.28.3",
-    "zod": "^3.22.4"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^20.11.0",
-    "rimraf": "^5.0.5",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
-  },
+
+  "files": [
+    "dist",
+    "ui",
+    "docker",
+    ".env.example",
+    "!ui/node_modules",
+    "!**/*.map"
+  ],
+
   "engines": {
     "node": ">=18.0.0"
+  },
+
+  "scripts": {
+    "build":           "tsc && npm run build:fixbin",
+    "build:fixbin":    "node -e \"const f='dist/cli/index.js',fs=require('fs'),c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);\"",
+    "build:watch":     "tsc --watch",
+    "clean":           "rimraf dist",
+    "rebuild":         "npm run clean && npm run build",
+
+    "start":           "ts-node src/cli/index.ts start",
+    "server":          "ts-node src/server/server.ts",
+    "ingest":          "ts-node src/cli/index.ts ingest --source mock",
+    "report":          "ts-node src/cli/index.ts report --format text",
+    "scan":            "ts-node src/cli/index.ts scan",
+    "scan:mock":       "ts-node src/cli/index.ts scan --mock",
+    "scan:mock:json":  "ts-node src/cli/index.ts scan --mock --output data/cluster-graph.json",
+
+    "db:generate":     "ts-node src/cli/index.ts scan --mock --skip-cve --output data/cluster-graph.json",
+    "db:load":         "ts-node src/db/loader.ts",
+    "db:load:mock":    "npm run db:generate && ts-node src/db/loader.ts data/cluster-graph.json",
+    "db:load:wipe":    "npm run db:generate && ts-node src/db/loader.ts data/cluster-graph.json --wipe",
+    "db:test":         "ts-node src/db/test.ts",
+    "db:test:fresh":   "ts-node src/db/test.ts --wipe",
+    "db:test:fast":    "ts-node src/db/test.ts --skip-load",
+
+    "typecheck":       "tsc --noEmit",
+    "prepublishOnly":  "npm run rebuild"
+  },
+
+  "dependencies": {
+    "axios":        "^1.6.8",
+    "commander":    "^11.1.0",
+    "cors":         "^2.8.6",
+    "dotenv":       "^17.3.1",
+    "express":      "^5.2.1",
+    "neo4j-driver": "^5.28.3",
+    "zod":          "^3.22.4"
+  },
+
+  "devDependencies": {
+    "@types/cors":    "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node":    "^20.11.0",
+    "rimraf":         "^5.0.5",
+    "ts-node":        "^10.9.2",
+    "typescript":     "^5.3.3"
   }
 }

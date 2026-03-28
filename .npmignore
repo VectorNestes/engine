@@ -1,0 +1,38 @@
+# Source files — consumers get compiled dist/ only
+src/
+ui/src/
+ui/public/
+ui/*.config.*
+ui/tsconfig.json
+ui/postcss.config.*
+ui/tailwind.config.*
+
+# Dev artifacts
+*.map
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+
+# Test + tooling
+*.test.ts
+*.spec.ts
+__tests__/
+coverage/
+
+# Data output
+data/
+*.json
+!package.json
+!ui/package.json
+!ui/package-lock.json
+
+# Docs / CI
+.github/
+.vscode/
+*.md
+!README.md
+
+# OS
+.DS_Store
+Thumbs.db

@@ -25,6 +25,7 @@ import { ensureProjection } from '../db/queries';
 import { verifyConnection } from '../db/neo4j-client';
 import { generateReport }   from '../services/report/generator';
 import { formatReport }     from '../services/report/formatter';
+import { runPreflight }     from './docker';
 
 const program = new Command();
 
@@ -77,7 +78,11 @@ program
       console.log('  🔷 K8s Attack Path Visualizer — Ingest');
       console.log('═'.repeat(60));
 
-      // Verify Neo4j before doing anything
+      // ── Docker + Neo4j preflight ──────────────────────────────────────────
+      const preflight = await runPreflight();
+      if (!preflight.ok) process.exit(1);
+
+      // Verify Neo4j driver connection
       console.log('\n  Connecting to Neo4j...');
       await verifyConnection();
 
