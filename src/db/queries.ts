@@ -50,29 +50,45 @@ export async function ensureProjection(forceRefresh = false): Promise<void> {
 
   console.log(`  → Projecting graph into GDS memory...`);
 
+  // Query which relationship types actually exist — GDS fails if any listed
+  // type is absent, so we build the projection dynamically from what's in DB.
+  const relRows = await runQuery<{ type: string }>(
+    `MATCH ()-[r:K8sNode|USES_SERVICE_ACCOUNT|BINDS_TO|HAS_ACCESS|EXPOSES|MOUNTS_SECRET|READS_CONFIGMAP|CAN_EXEC_INTO]->() RETURN DISTINCT type(r) AS type`
+  );
+
+  // Fallback: query all relationship types if none of the known types exist
+  const knownTypes = relRows.map((r) => r.type);
+  const typesToProject = knownTypes.length > 0
+    ? knownTypes
+    : (await runQuery<{ type: string }>(`MATCH ()-[r]->() RETURN DISTINCT type(r) AS type`)).map((r) => r.type);
+
+  if (typesToProject.length === 0) {
+    throw new Error('No relationships found in the database. Run POST /api/ingest first.');
+  }
+
+  // Build relationship projection — only include types that exist.
+  // typesToProject comes from a closed MATCH filter above, so no injection risk.
+  const relProjection = typesToProject
+    .map((t) => `${t}: { properties: 'weight', orientation: 'NATURAL' }`)
+    .join(',\n        ');
+
   await runQuery(`
     CALL gds.graph.project(
       $name,
       {
         K8sNode: {
-          properties: ['riskScore', 'isEntryPoint', 'isCrownJewel']
+          properties: ['riskScore']
         }
       },
       {
-        USES_SERVICE_ACCOUNT: { properties: 'weight', orientation: 'NATURAL' },
-        BINDS_TO:             { properties: 'weight', orientation: 'NATURAL' },
-        HAS_ACCESS:           { properties: 'weight', orientation: 'NATURAL' },
-        EXPOSES:              { properties: 'weight', orientation: 'NATURAL' },
-        MOUNTS_SECRET:        { properties: 'weight', orientation: 'NATURAL' },
-        READS_CONFIGMAP:      { properties: 'weight', orientation: 'NATURAL' },
-        CAN_EXEC_INTO:        { properties: 'weight', orientation: 'NATURAL' }
+        ${relProjection}
       }
     )
     YIELD graphName, nodeCount, relationshipCount
     RETURN graphName, nodeCount, relationshipCount
   `, { name: PROJECTION_NAME });
 
-  console.log(`  ✔ GDS projection '${PROJECTION_NAME}' created`);
+  console.log(`  ✔ GDS projection '${PROJECTION_NAME}' created (types: ${typesToProject.join(', ')})`);
 }
 
 /** Drops the in-memory projection (call after algorithms to free memory). */

@@ -5,6 +5,9 @@
   "main": "dist/cli/index.js",
   "scripts": {
     "build": "tsc",
+    "server": "ts-node src/server/server.ts",
+    "ingest": "ts-node src/cli/index.ts ingest --source mock",
+    "report": "ts-node src/cli/index.ts report --format text",
     "scan": "ts-node src/cli/index.ts scan",
     "scan:mock": "ts-node src/cli/index.ts scan --mock",
     "scan:mock:json": "ts-node src/cli/index.ts scan --mock --output data/cluster-graph.json",
@@ -21,10 +24,15 @@
   "dependencies": {
     "axios": "^1.6.8",
     "commander": "^11.1.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
     "neo4j-driver": "^5.28.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.11.0",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
