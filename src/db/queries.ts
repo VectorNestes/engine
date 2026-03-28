@@ -184,7 +184,7 @@ export async function findAttackPaths(
            totalWeight, hops, riskScore
 
     ORDER BY totalWeight DESC, hops ASC
-    LIMIT $limit
+    LIMIT toInteger($limit)
   `, { limit });
 
   return rows.map((r, i) => ({
@@ -310,7 +310,7 @@ export async function detectCycles(
 
     RETURN DISTINCT cycleNodeIds, relationshipTypes, cycleLength
     ORDER BY cycleLength ASC
-    LIMIT $limit
+    LIMIT toInteger($limit)
   `, { limit });
 
   return rows as CycleResult[];
@@ -366,7 +366,7 @@ export async function findCriticalNodes(topN = 10): Promise<CriticalNode[]> {
       n.riskScore    AS riskScore
 
     ORDER BY betweennessScore DESC
-    LIMIT $topN
+    LIMIT toInteger($topN)
   `, { projection: PROJECTION_NAME, topN });
 
   return rows as CriticalNode[];

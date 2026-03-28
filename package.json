@@ -5,6 +5,7 @@
   "main": "dist/cli/index.js",
   "scripts": {
     "build": "tsc",
+    "start": "ts-node src/cli/index.ts start",
     "server": "ts-node src/server/server.ts",
     "ingest": "ts-node src/cli/index.ts ingest --source mock",
     "report": "ts-node src/cli/index.ts report --format text",
