@@ -1,26 +1,19 @@
-
-
 import { exec as execCb, spawn } from 'child_process';
 import * as path from 'path';
 import * as util from 'util';
 
 const exec = util.promisify(execCb);
 
-
-
 const CONTAINER_NAME   = 'k8s-attack-neo4j';
 const COMPOSE_DIR      = path.resolve(__dirname, '..', '..', 'docker');
 const NEO4J_BOLT_PORT  = 7687;
 const NEO4J_HTTP_PORT  = 7474;
-
 
 const ok   = (msg: string) => console.log(`  ✔  ${msg}`);
 const warn = (msg: string) => console.log(`  ⚠  ${msg}`);
 const fail = (msg: string) => console.error(`  ✖  ${msg}`);
 const info = (msg: string) => console.log(`     ${msg}`);
 const line = ()            => console.log('  ' + '─'.repeat(58));
-
-
 
 export async function checkDockerInstalled(): Promise<boolean> {
   try {
@@ -43,10 +36,6 @@ export async function checkDockerRunning(): Promise<boolean> {
   }
 }
 
-
-// Is the Neo4j container already up?
-
-
 export async function isNeo4jContainerRunning(): Promise<boolean> {
   try {
     const { stdout } = await exec(
@@ -57,10 +46,6 @@ export async function isNeo4jContainerRunning(): Promise<boolean> {
     return false;
   }
 }
-
-
-// Start Neo4j via docker-compose
-
 
 export async function startNeo4j(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -85,9 +70,6 @@ export async function startNeo4j(): Promise<void> {
   });
 }
 
-//  Poll until Neo4j Bolt port is accepting connections
-
-
 export async function waitForNeo4j(
   timeoutMs = 120_000,
   pollMs    = 3_000,
@@ -98,11 +80,10 @@ export async function waitForNeo4j(
   while (Date.now() < deadline) {
     attempt++;
     try {
-      // Use `docker exec` to run a lightweight cypher-shell ping
       await exec(
         `docker exec ${CONTAINER_NAME} cypher-shell -u neo4j -p password "RETURN 1" --format plain`,
       );
-      return; // success
+      return;
     } catch {
       const remaining = Math.ceil((deadline - Date.now()) / 1000);
       process.stdout.write(
@@ -119,21 +100,14 @@ export async function waitForNeo4j(
   );
 }
 
-
-// Full preflight check (install → running → Neo4j)
-
-
 export interface PreflightResult {
   ok: boolean;
-  /** true = Docker + Neo4j are ready, false = caller should abort */
 }
-
 
 export async function runPreflight(): Promise<PreflightResult> {
   console.log('\n' + '─'.repeat(62));
   console.log('  Docker & Neo4j Preflight');
   console.log('─'.repeat(62));
-
 
   const installed = await checkDockerInstalled();
   if (!installed) {
@@ -195,7 +169,7 @@ export async function runPreflight(): Promise<PreflightResult> {
 
   try {
     await waitForNeo4j(120_000);
-    process.stdout.write('\n'); // clear the spinner line
+    process.stdout.write('\n');
     ok('Neo4j is ready');
   } catch (err) {
     process.stdout.write('\n');
@@ -212,11 +186,8 @@ export async function runPreflight(): Promise<PreflightResult> {
   return { ok: true };
 }
 
-
-
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
-
 
 export { NEO4J_BOLT_PORT, NEO4J_HTTP_PORT };

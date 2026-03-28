@@ -1,4 +1,3 @@
-
 import 'dotenv/config';
 
 import { Command } from 'commander';
@@ -24,7 +23,6 @@ program
   )
   .version('1.0.0', '-v, --version');
 
-
 program
   .command('scan')
   .description('Scan a Kubernetes cluster and output an attack-path graph (no Neo4j)')
@@ -42,8 +40,6 @@ program
     }
   });
 
-
-
 program
   .command('ingest')
   .description('Full ingestion: fetch cluster data → load Neo4j → re-project GDS')
@@ -58,11 +54,9 @@ program
       console.log('  🔷 K8s Attack Path Visualizer — Ingest');
       console.log('═'.repeat(60));
 
-      // ── Docker + Neo4j preflight ──────────────────────────────────────────
       const preflight = await runPreflight();
       if (!preflight.ok) process.exit(1);
 
-      // Verify Neo4j driver connection
       console.log('\n  Connecting to Neo4j...');
       await verifyConnection();
 
@@ -70,12 +64,10 @@ program
       const ingestResult = await ingestCluster({ source, skipCve: opts.skipCve });
       console.log(`  ✔ Graph JSON written: ${ingestResult.nodes} nodes, ${ingestResult.edges} edges`);
 
-      // ── Step 2: loadGraph (Teammate 2) ───────────────────────────────────
       console.log('\n  [2/3] Loading graph into Neo4j...');
       const stats = await loadGraph(ingestResult.graphPath, opts.wipe);
       console.log(`  ✔ Neo4j: ${stats.nodesLoaded} nodes, ${stats.edgesLoaded} edges (${stats.durationMs}ms)`);
 
-      // ── Step 3: Re-project GDS ────────────────────────────────────────────
       console.log('\n  [3/3] Projecting GDS graph...');
       await ensureProjection(true);
       console.log('  ✔ GDS projection ready');
@@ -88,11 +80,6 @@ program
       process.exit(1);
     }
   });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// report — generate + print attack report
-// Reuses same generator + formatter as GET /api/report
-// ─────────────────────────────────────────────────────────────────────────────
 
 program
   .command('report')
@@ -108,7 +95,6 @@ program
       console.log('  Generating report...\n');
       const data = await generateReport();
 
-      // Same formatter used by the API — no duplication
       const output = formatReport(data, format);
       console.log(output);
 
@@ -118,10 +104,6 @@ program
       process.exit(1);
     }
   });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// start — full system orchestrator: backend + ingest + UI + browser
-// ─────────────────────────────────────────────────────────────────────────────
 
 program
   .command('start')
@@ -139,10 +121,6 @@ program
       process.exit(1);
     }
   });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Fallback
-// ─────────────────────────────────────────────────────────────────────────────
 
 program.on('command:*', () => {
   console.error(`Unknown command: ${program.args.join(' ')}`);

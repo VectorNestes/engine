@@ -1,5 +1,3 @@
-// All paths are relative — Vite proxies /api/* → http://localhost:3001
-
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path);
   if (!res.ok) {
@@ -21,8 +19,6 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   }
   return res.json() as Promise<T>;
 }
-
-// ─── Domain types (match actual backend responses) ───────────────────────────
 
 export interface GraphNode {
   id: string;
@@ -147,8 +143,6 @@ export interface ReportResponse {
   report: unknown;
   formatted: string;
 }
-
-// ─── API surface ─────────────────────────────────────────────────────────────
 
 export const api = {
   getGraph:           () => get<GraphResponse>('/api/graph'),
