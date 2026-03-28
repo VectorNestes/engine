@@ -17,7 +17,6 @@ export function Sidebar() {
     <aside
       style={{ width: 192, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#0B0B0B', borderRight: '1px solid #1F1F1F' }}
     >
-      {/* Logo */}
       <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid #1F1F1F' }}>
         <div style={{ fontSize: 14, fontFamily: 'monospace', color: '#FF6A00', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>
           K8s-AV
@@ -25,12 +24,10 @@ export function Sidebar() {
         <div style={{ fontSize: 12, color: '#888888', marginTop: 3 }}>Attack Path Visualizer</div>
       </div>
 
-      {/* Section label */}
       <div style={{ padding: '16px 16px 8px', fontSize: 11, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         Navigation
       </div>
 
-      {/* Nav */}
       <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
         {NAV.map(({ id, label, icon }) => {
           const active = activeView === id;
@@ -74,7 +71,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Stats footer */}
       <div style={{ padding: '12px 16px', borderTop: '1px solid #1F1F1F', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ fontSize: 11, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>
           Cluster Stats

@@ -15,13 +15,11 @@ export function DetailPanel() {
 
   return (
     <>
-      {/* Backdrop */}
       <div
         style={{ position: 'fixed', inset: 0, zIndex: 40 }}
         onClick={() => selectNode(null)}
       />
 
-      {/* Panel */}
       <aside
         style={{
           position: 'fixed',
@@ -44,7 +42,6 @@ export function DetailPanel() {
           }
         `}</style>
 
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid #1F1F1F' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#FF6A00', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 5 }}>
@@ -68,14 +65,12 @@ export function DetailPanel() {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Tags */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {node.isEntryPoint && <Tag label="Entry Point" color="blue" />}
             {node.isCrownJewel && <Tag label="Crown Jewel" color="amber" />}
             {vuln && <RiskBadge score={vuln.riskScore} />}
           </div>
 
-          {/* Image */}
           {node.image && (
             <InfoBox>
               <Label>Image</Label>
@@ -83,7 +78,6 @@ export function DetailPanel() {
             </InfoBox>
           )}
 
-          {/* CVEs */}
           {(node.cve?.length ?? 0) > 0 && (
             <InfoBox>
               <Label>CVEs</Label>
@@ -108,7 +102,6 @@ export function DetailPanel() {
             </InfoBox>
           )}
 
-          {/* Risk Analysis */}
           {vuln && (
             <InfoBox>
               <Label>Risk Analysis</Label>
@@ -123,7 +116,6 @@ export function DetailPanel() {
             </InfoBox>
           )}
 
-          {/* Simulate Removal */}
           <InfoBox>
             <Label>Simulate Removal</Label>
             <p style={{ fontSize: 11, color: '#555555', marginBottom: 10, marginTop: 0 }}>

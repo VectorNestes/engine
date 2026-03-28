@@ -10,7 +10,6 @@ export function CriticalNodeView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-      {/* Info panel — full height */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 14 }}>
 
         {loading['critical'] && (
@@ -30,7 +29,6 @@ export function CriticalNodeView() {
         {top && (
           <div style={{ background: '#121212', border: '1px solid #1F1F1F', borderTop: '2px solid #FF6A00', borderRadius: 12, overflow: 'hidden' }}>
 
-            {/* Node info */}
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #1F1F1F' }}>
               <div style={{ fontSize: 11, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
                 Critical Node
@@ -53,7 +51,6 @@ export function CriticalNodeView() {
               </div>
             </div>
 
-            {/* Path elimination */}
             {elim && (
               <div style={{ padding: '16px 20px', borderBottom: '1px solid #1F1F1F' }}>
                 <div style={{ fontSize: 11, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
@@ -68,7 +65,6 @@ export function CriticalNodeView() {
               </div>
             )}
 
-            {/* Simulate */}
             <div style={{ padding: '16px 20px' }}>
               <div style={{ fontSize: 11, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
                 Simulate Removal

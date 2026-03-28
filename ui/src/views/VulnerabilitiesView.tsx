@@ -14,10 +14,8 @@ export function VulnerabilitiesView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-      {/* Table panel — fills full height */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
 
-        {/* Summary bar */}
         {vulnSummary && (
           <div style={{ display: 'flex', gap: 20, padding: '10px 16px', borderBottom: '1px solid #1F1F1F' }}>
             <span style={{ fontSize: 13, color: '#555555' }}>
@@ -41,7 +39,6 @@ export function VulnerabilitiesView() {
           </div>
         )}
 
-        {/* Loading */}
         {loading['vulns'] && (
           <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Array.from({ length: 4 }).map((_, i) => (
@@ -50,19 +47,16 @@ export function VulnerabilitiesView() {
           </div>
         )}
 
-        {/* Error */}
         {errors['vulns'] && (
           <div style={{ margin: 12, padding: '8px 12px', borderLeft: '2px solid #FF3B3B', background: '#FF3B3B10', color: '#FF3B3B', fontSize: 12 }}>
             {errors['vulns']}
           </div>
         )}
 
-        {/* Empty */}
         {!loading['vulns'] && vulnerabilities.length === 0 && !errors['vulns'] && (
           <div style={{ padding: 16, textAlign: 'center', fontSize: 12, color: '#555555' }}>No vulnerabilities above threshold.</div>
         )}
 
-        {/* Table */}
         {vulnerabilities.length > 0 && (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>

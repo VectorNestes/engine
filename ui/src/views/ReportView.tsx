@@ -13,10 +13,9 @@ export function ReportView() {
   const downloadPdf = () => {
     if (!reportData?.formatted) return;
 
-    // ── 1. Sanitise: strip all chars the built-in Courier font can't render ──
     const sanitise = (s: string) =>
       s
-        .replace(/[╔╗╚╝║]/g, '')          // box corners / sides
+        .replace(/[╔╗╚╝║]/g, '')
         .replace(/═+/g, (m) => '='.repeat(m.length))
         .replace(/─+/g, (m) => '-'.repeat(m.length))
         .replace(/█/g, '#')
@@ -24,9 +23,8 @@ export function ReportView() {
         .replace(/[→]/g, '->')
         .replace(/[≥]/g, '>=')
         .replace(/[✔]/g, 'OK')
-        .replace(/[^\x00-\x7F]/g, '?');   // catch-all for remaining non-ASCII
+        .replace(/[^\x00-\x7F]/g, '?');
 
-    // ── 2. Classify each source line ────────────────────────────────────────
     type LineKind = 'blank' | 'divider' | 'title-box' | 'section' | 'path-header' | 'kv' | 'text';
 
     interface ParsedLine { kind: LineKind; raw: string; clean: string }
@@ -48,16 +46,14 @@ export function ReportView() {
       return                                                          { kind: 'text',         raw, clean };
     });
 
-    // ── 3. Build PDF ─────────────────────────────────────────────────────────
     const doc    = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageW  = doc.internal.pageSize.getWidth();
     const pageH  = doc.internal.pageSize.getHeight();
-    const ML     = 48;    // margin left
-    const MR     = 48;    // margin right
+    const ML     = 48;
+    const MR     = 48;
     const bodyW  = pageW - ML - MR;
     const date   = new Date().toISOString().slice(0, 10);
 
-    // colours (RGB)
     const C = {
       bg:      [11, 11, 11]   as [number,number,number],
       orange:  [255, 106, 0]  as [number,number,number],
@@ -72,7 +68,6 @@ export function ReportView() {
     let y       = 0;
     let pageNum = 1;
 
-    // ── helpers ──────────────────────────────────────────────────────
     const fill = (c: [number,number,number]) => doc.setFillColor(...c);
     const text = (c: [number,number,number]) => doc.setTextColor(...c);
     const draw = (c: [number,number,number]) => doc.setDrawColor(...c);
@@ -81,10 +76,8 @@ export function ReportView() {
 
     const drawPageHeader = () => {
       drawBg();
-      // orange top strip
       fill(C.orange);
       doc.rect(0, 0, pageW, 3, 'F');
-      // left accent line
       fill(C.orange);
       doc.rect(ML - 12, 24, 2, pageH - 48, 'F');
     };
@@ -109,31 +102,26 @@ export function ReportView() {
       if (y + needed > pageH - 40) newPage();
     };
 
-    // ── cover page ───────────────────────────────────────────────────
     drawPageHeader();
     y = 52;
 
-    // Title
     doc.setFont('courier', 'bold');
     doc.setFontSize(22);
     text(C.white);
     doc.text('K8s Attack Path Report', ML, y);
     y += 26;
 
-    // Subtitle row
     doc.setFont('courier', 'normal');
     doc.setFontSize(8.5);
     text(C.dim);
     doc.text(`Generated ${date}   |   Kubernetes RBAC Attack Path Visualizer`, ML, y);
     y += 18;
 
-    // Full-width divider under header
     draw(C.faint);
     doc.setLineWidth(0.4);
     doc.line(ML, y, pageW - MR, y);
     y += 14;
 
-    // ── render body lines ────────────────────────────────────────────
     for (const pl of parsed) {
       switch (pl.kind) {
 
@@ -151,13 +139,11 @@ export function ReportView() {
         }
 
         case 'title-box':
-          // skip — we already drew a nicer cover header
           break;
 
         case 'section': {
           ensureSpace(32);
           y += 6;
-          // orange pill background
           const label = pl.clean.trim();
           fill(C.orange);
           doc.roundedRect(ML, y - 10, bodyW, 16, 2, 2, 'F');
@@ -172,12 +158,10 @@ export function ReportView() {
         case 'path-header': {
           ensureSpace(22);
           y += 4;
-          // strip the risk bar text, parse score
           const riskMatch = pl.raw.match(/([\d.]+)\/10/);
           const score     = riskMatch ? parseFloat(riskMatch[1]) : 0;
           const riskColor = score >= 8 ? C.danger : score >= 5 ? C.orange : [76, 175, 80] as [number,number,number];
 
-          // label (Path N / Dijkstra N / Cycle N)
           const labelMatch = pl.clean.trim().match(/^(\w+\s+\d+)/);
           const pathLabel  = labelMatch ? labelMatch[1] : pl.clean.trim();
 
@@ -186,7 +170,6 @@ export function ReportView() {
           text(C.white);
           doc.text(pathLabel, ML, y);
 
-          // score badge
           if (score > 0) {
             const badge = `${score.toFixed(1)} / 10`;
             doc.setFont('courier', 'bold');
@@ -194,7 +177,6 @@ export function ReportView() {
             text(riskColor);
             doc.text(badge, pageW - MR, y, { align: 'right' });
 
-            // mini bar: 10 segments
             const barW   = 60;
             const barH   = 4;
             const barX   = pageW - MR - barW - 48;
@@ -212,7 +194,6 @@ export function ReportView() {
 
         case 'kv': {
           ensureSpace(14);
-          // split "  Key   : value" into key + value parts
           const colonIdx = pl.clean.indexOf(':');
           const key   = colonIdx > -1 ? pl.clean.slice(0, colonIdx + 1).trim() : pl.clean.trim();
           const value = colonIdx > -1 ? pl.clean.slice(colonIdx + 1).trim()    : '';
@@ -220,11 +201,9 @@ export function ReportView() {
           doc.setFont('courier', 'normal');
           doc.setFontSize(8);
 
-          // key
           text(C.key);
           doc.text(key, ML + 8, y);
 
-          // value (wrap if long)
           text(C.muted);
           const keyWidth   = doc.getTextWidth(key + '  ');
           const valueLines = doc.splitTextToSize(value, bodyW - keyWidth - 8) as string[];
@@ -239,7 +218,6 @@ export function ReportView() {
         }
 
         default: {
-          // generic text — wrap to page width
           ensureSpace(13);
           doc.setFont('courier', 'normal');
           doc.setFontSize(8);
@@ -262,7 +240,6 @@ export function ReportView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 14, gap: 12 }}>
 
-      {/* Header box */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div>
           <div style={{ fontSize: 9, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Attack Report</div>
@@ -275,7 +252,6 @@ export function ReportView() {
         )}
       </div>
 
-      {/* Content box */}
       <div
         style={{
           flex: 1,

@@ -11,7 +11,6 @@ import { useAppStore } from './store/useAppStore';
 export default function App() {
   const { activeView, selectedNodeId, fetchGraph, fetchVulnerabilities } = useAppStore();
 
-  // Fetch graph + vulnerabilities on mount
   useEffect(() => {
     fetchGraph();
     fetchVulnerabilities();
@@ -21,7 +20,6 @@ export default function App() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0a0a0f' }}>
       <Sidebar />
 
-      {/* Main */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
         {activeView === 'overview'        && <OverviewView />}
         {activeView === 'paths'           && <PathsView />}
@@ -30,7 +28,6 @@ export default function App() {
         {activeView === 'report'          && <ReportView />}
       </main>
 
-      {/* Detail panel slides in from right when a node is selected */}
       {selectedNodeId && <DetailPanel />}
     </div>
   );

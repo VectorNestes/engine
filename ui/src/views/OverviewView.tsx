@@ -6,7 +6,6 @@ export function OverviewView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Summary cards */}
       {(graphMeta || loading['graph']) && (
         <div style={{ flexShrink: 0, display: 'flex', gap: 10, padding: '14px 16px', borderBottom: '1px solid #1F1F1F' }}>
           {loading['graph']
@@ -35,14 +34,12 @@ export function OverviewView() {
         </div>
       )}
 
-      {/* Error */}
       {errors['graph'] && (
         <div style={{ flexShrink: 0, margin: '12px 16px 0', padding: '8px 12px', borderLeft: '2px solid #FF3B3B', background: '#FF3B3B10', color: '#FF3B3B', fontSize: 12 }}>
           {errors['graph']}
         </div>
       )}
 
-      {/* Graph container */}
       <div style={{ flex: 1, minHeight: 0, padding: 12, display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1, minHeight: 0, background: '#121212', border: '1px solid #1F1F1F', borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <GraphCanvas />

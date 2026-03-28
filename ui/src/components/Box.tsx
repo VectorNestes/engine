@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 interface BoxProps {
   children: ReactNode;
   className?: string;
-  /** adds a 2px orange top-border accent line */
   accent?: boolean;
 }
 

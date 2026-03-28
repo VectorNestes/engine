@@ -16,7 +16,6 @@ const NODE_W = 180;
 const NODE_H = 54;
 const nodeTypes = { k8s: CustomNode };
 
-// ─── Dagre layout ─────────────────────────────────────────────────────────────
 function applyLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
@@ -30,7 +29,6 @@ function applyLayout(nodes: Node[], edges: Edge[]): Node[] {
   });
 }
 
-// ─── Transform backend data → React Flow ─────────────────────────────────────
 function buildFlowGraph(
   rawNodes: GraphNode[],
   rawEdges: GraphEdge[],
@@ -87,7 +85,6 @@ function buildFlowGraph(
   return { nodes: applyLayout(nodes, edges), edges };
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 interface Props {
   highlightedNodeIds?: Set<string>;
   highlightedEdgeKeys?: Set<string>;

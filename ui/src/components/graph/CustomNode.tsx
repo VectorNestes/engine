@@ -62,7 +62,6 @@ export const CustomNode = memo(({ data }: NodeProps) => {
       <Handle type="target" position={Position.Left}  style={{ background: borderColor, width: 5, height: 5, border: 'none' }} />
       <Handle type="source" position={Position.Right} style={{ background: borderColor, width: 5, height: 5, border: 'none' }} />
 
-      {/* CVE dot */}
       {d.hasCve && (
         <span
           title="Has CVEs"
@@ -74,17 +73,14 @@ export const CustomNode = memo(({ data }: NodeProps) => {
         />
       )}
 
-      {/* Type badge */}
       <div style={{ fontSize: 9, color: borderColor, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 3, opacity: 0.9 }}>
         {d.isEntryPoint ? '⤳ ' : ''}{d.isCrownJewel ? '★ ' : ''}{d.nodeType}
       </div>
 
-      {/* Label */}
       <div style={{ fontSize: 11, color: '#EAEAEA', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {d.label}
       </div>
 
-      {/* Risk score */}
       {d.riskScore > 0 && (
         <div style={{
           fontSize: 9,

@@ -28,7 +28,6 @@ export function PathsView() {
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
 
-      {/* ── Path List (full width) ───────────────────────────────────── */}
       <div style={{
         flex: 1,
         display: 'flex',
@@ -36,7 +35,6 @@ export function PathsView() {
         background: '#0B0B0B',
         overflow: 'hidden',
       }}>
-        {/* Header */}
         <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid #1F1F1F', flexShrink: 0 }}>
           <div style={{ fontSize: 14, color: '#EAEAEA', fontWeight: 500, marginBottom: 6 }}>Attack Paths</div>
           {pathsSummary && (
@@ -49,7 +47,6 @@ export function PathsView() {
           )}
         </div>
 
-        {/* List */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 0, maxWidth: 900, width: '100%', alignSelf: 'center', boxSizing: 'border-box' }}>
 
           {loading['paths'] && Array.from({ length: 3 }).map((_, i) => (
@@ -109,8 +106,6 @@ export function PathsView() {
   );
 }
 
-// ─── PathCard ──────────────────────────────────────────────────────────────────
-
 interface PathCardProps {
   index: number;
   nodes: string[];
@@ -122,7 +117,6 @@ interface PathCardProps {
 }
 
 function PathCard({ index, nodes, description, riskScore, riskColor, riskLabel, active }: PathCardProps) {
-  // Chunk nodes into rows of max 3 (so arrows don't overflow)
   const COLS   = 3;
   const chunks: string[][] = [];
   for (let i = 0; i < nodes.length; i += COLS) {
@@ -155,7 +149,6 @@ function PathCard({ index, nodes, description, riskScore, riskColor, riskLabel, 
         }
       }}
     >
-      {/* ── Top row: index + risk badge ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <span style={{
           fontSize: 10,
@@ -182,7 +175,6 @@ function PathCard({ index, nodes, description, riskScore, riskColor, riskLabel, 
         </span>
       </div>
 
-      {/* ── Node chain grid ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {chunks.map((chunk, rowIdx) => {
           const globalOffset = rowIdx * COLS;
@@ -194,7 +186,6 @@ function PathCard({ index, nodes, description, riskScore, riskColor, riskLabel, 
                 const isLast    = globalIdx === nodes.length - 1;
                 const isArrow   = colIdx < chunk.length - 1 || (rowIdx < chunks.length - 1 && colIdx === chunk.length - 1);
 
-                // determine chip style
                 let chipBg     = '#1e1e26';
                 let chipBorder = '#2e2e3a';
                 let chipColor  = '#9090a0';
@@ -259,7 +250,6 @@ function PathCard({ index, nodes, description, riskScore, riskColor, riskLabel, 
         })}
       </div>
 
-      {/* ── Divider ── */}
       <div style={{
         height: 1,
         background: 'linear-gradient(90deg, #1a6070, #0a2a35 80%, transparent)',
@@ -267,7 +257,6 @@ function PathCard({ index, nodes, description, riskScore, riskColor, riskLabel, 
         borderRadius: 1,
       }} />
 
-      {/* ── Description ── */}
       <p style={{
         margin: 0,
         fontSize: 12,
