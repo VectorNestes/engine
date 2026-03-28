@@ -11,24 +11,12 @@ import {
   printAttackPaths,
 } from '../core/attack-path';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OPTIONS
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface ScanOptions {
-  /** Load data from mock JSON instead of running kubectl */
   mock: boolean;
-  /** Destination file path for the cluster-graph.json output */
   output: string;
-  /** Skip CVE enrichment (faster runs, no network required) */
   skipCve?: boolean;
-  /** Print verbose attack-path report including alternate routes */
   verbose?: boolean;
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LOGGING HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 function step(label: string): void {
   console.log(`\n✔ ${label}`);
@@ -38,21 +26,12 @@ function divider(): void {
   console.log('  ' + '─'.repeat(60));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN SCAN PIPELINE
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Orchestrates the full ingestion → transformation → enrichment →
- * validation → output pipeline.
- */
 export async function runScan(options: ScanOptions): Promise<void> {
   console.log('\n' + '═'.repeat(62));
   console.log('  🔐 Kubernetes Attack Path Visualizer');
   console.log('     RBAC Graph Ingestion & CVE Enrichment Pipeline');
   console.log('═'.repeat(62));
 
-  // ── Step 1: Fetch ──────────────────────────────────────────────────────────
   step('Fetching cluster data...');
   const rawData = await fetchClusterData(options.mock);
 
@@ -70,7 +49,6 @@ export async function runScan(options: ScanOptions): Promise<void> {
       `Roles: ${roleCount}  |  Bindings: ${bindingCount}`
   );
 
-  // ── Step 2: Transform ─────────────────────────────────────────────────────
   step('Transforming RBAC graph...');
   let graph = transformToGraph(rawData);
   console.log(
@@ -81,7 +59,6 @@ export async function runScan(options: ScanOptions): Promise<void> {
   const crownJs = graph.nodes.filter((n) => n.isCrownJewel).length;
   console.log(`  → Entry points: ${entryPts}  |  Crown jewels: ${crownJs}`);
 
-  // ── Step 3: CVE Enrichment ────────────────────────────────────────────────
   if (options.skipCve) {
     console.log('\n✔ CVE enrichment skipped (--skip-cve)');
   } else {
@@ -91,7 +68,6 @@ export async function runScan(options: ScanOptions): Promise<void> {
     console.log(`  → ${enriched} pod(s) enriched with CVE data`);
   }
 
-  // ── Step 4: Attack Path Detection ─────────────────────────────────────────
   step('Detecting attack paths...');
 
   let attackPaths;
@@ -117,7 +93,6 @@ export async function runScan(options: ScanOptions): Promise<void> {
 
   graph = { ...graph, attackPaths };
 
-  // ── Step 5: Validation ────────────────────────────────────────────────────
   step('Validating schema...');
 
   const finalGraph = {
@@ -135,7 +110,6 @@ export async function runScan(options: ScanOptions): Promise<void> {
 
   const validated = validateGraph(finalGraph);
 
-  // ── Step 6: Persist ───────────────────────────────────────────────────────
   step('Saving graph...');
 
   const outputPath = path.resolve(options.output);
@@ -148,7 +122,6 @@ export async function runScan(options: ScanOptions): Promise<void> {
   fs.writeFileSync(outputPath, JSON.stringify(validated, null, 2), 'utf8');
   console.log(`  → Saved to: ${outputPath}`);
 
-  // ── Final Summary ─────────────────────────────────────────────────────────
   divider();
   console.log('\n  📊 Final Summary\n');
   console.log(

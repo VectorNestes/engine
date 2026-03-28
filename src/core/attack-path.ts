@@ -1,16 +1,7 @@
 import { Graph, AttackPath, Node, Edge } from './schema';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────────────────────────────────────
-
 type AdjacencyList = Map<string, string[]>;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GRAPH UTILITIES
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Builds a directed adjacency list from the graph edges. */
 function buildAdjacencyList(edges: Edge[]): AdjacencyList {
   const adj: AdjacencyList = new Map();
   for (const edge of edges) {
@@ -21,15 +12,6 @@ function buildAdjacencyList(edges: Edge[]): AdjacencyList {
   return adj;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BFS — shortest path between two nodes
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Returns the shortest directed path (BFS) from `startId` to `endId`,
- * or `null` if no path exists.
- * The returned array includes both `startId` and `endId`.
- */
 function bfsShortestPath(
   startId: string,
   endId: string,
@@ -58,14 +40,6 @@ function bfsShortestPath(
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DFS — ALL paths between two nodes (bounded depth)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Returns ALL simple directed paths from `startId` to `endId` up to
- * `maxDepth` hops. Useful for finding multiple exploitation routes.
- */
 function dfsAllPaths(
   startId: string,
   endId: string,
@@ -95,14 +69,6 @@ function dfsAllPaths(
   return results;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RISK CALCULATION
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Calculates the aggregate risk score for an attack path.
- * Uses the average node riskScore, biased toward the highest-risk node.
- */
 function calculatePathRisk(path: string[], nodeMap: Map<string, Node>): number {
   if (path.length === 0) return 0;
 
@@ -110,13 +76,8 @@ function calculatePathRisk(path: string[], nodeMap: Map<string, Node>): number {
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
   const max = Math.max(...scores);
 
-  // Weighted blend: 60 % max severity + 40 % average traversal risk
   return parseFloat(Math.min(10, max * 0.6 + avg * 0.4).toFixed(2));
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC API
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface AttackPathReport {
   paths: AttackPath[];
@@ -124,17 +85,11 @@ export interface AttackPathReport {
     totalPaths: number;
     uniqueEntryPoints: number;
     uniqueCrownJewels: number;
-    criticalPaths: number;  // riskScore >= 7
+    criticalPaths: number;
     avgHops: number;
   };
 }
 
-/**
- * Detects all attack paths in the graph that lead from an entry-point node
- * to a crown-jewel node using BFS (shortest path) per pair.
- *
- * Paths are sorted by descending riskScore.
- */
 export function detectAttackPaths(graph: Graph): AttackPath[] {
   const entryPoints = graph.nodes.filter((n) => n.isEntryPoint);
   const crownJewels = graph.nodes.filter((n) => n.isCrownJewel);
@@ -170,10 +125,6 @@ export function detectAttackPaths(graph: Graph): AttackPath[] {
   return paths.sort((a, b) => b.riskScore - a.riskScore);
 }
 
-/**
- * Same as `detectAttackPaths` but also finds ALTERNATE (non-shortest) paths
- * for richer analysis. Returns a full report with statistics.
- */
 export function generateFullAttackReport(graph: Graph): AttackPathReport {
   const entryPoints = graph.nodes.filter((n) => n.isEntryPoint);
   const crownJewels = graph.nodes.filter((n) => n.isCrownJewel);
@@ -225,7 +176,6 @@ export function generateFullAttackReport(graph: Graph): AttackPathReport {
   };
 }
 
-/** Pretty-prints the top N attack paths to the console. */
 export function printAttackPaths(paths: AttackPath[], limit = 10): void {
   const top = paths.slice(0, limit);
   if (top.length === 0) {

@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NODE ID — prevents Cypher injection
-// Only allows: namespace:name  (alphanumeric, dash, dot, underscore in each part)
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const NodeIdSchema = z
   .string()
   .regex(
@@ -12,15 +7,7 @@ export const NodeIdSchema = z
     'nodeId must be in namespace:name format (only alphanumeric, dash, dot, underscore)'
   );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HOPS — z.coerce handles both "3" (query string) and 3 (body)
-// ─────────────────────────────────────────────────────────────────────────────
-
 export const HopsSchema = z.coerce.number().int().min(1).max(20);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE-SPECIFIC SCHEMAS
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const IngestInputSchema = z.object({
   source:  z.enum(['mock', 'live']).default('mock'),
@@ -51,10 +38,6 @@ export const SimulateInputSchema = z.object({
   nodeId:  NodeIdSchema,
   maxHops: HopsSchema.default(10),
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// INFERRED TYPES
-// ─────────────────────────────────────────────────────────────────────────────
 
 export type IngestInput    = z.infer<typeof IngestInputSchema>;
 export type PathsQuery     = z.infer<typeof PathsQuerySchema>;

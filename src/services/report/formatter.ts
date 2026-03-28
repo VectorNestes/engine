@@ -1,15 +1,7 @@
 import type { ReportData } from './generator';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTS
-// ─────────────────────────────────────────────────────────────────────────────
-
 const W   = 66;
 const DIV = '─'.repeat(W);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 function header(title: string): string {
   return [
@@ -24,19 +16,6 @@ function riskBar(score: number): string {
   return '[' + '█'.repeat(filled) + '░'.repeat(10 - filled) + `] ${score}/10`;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC API
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Converts structured ReportData → human-readable text or raw JSON.
- *
- * Used identically by:
- *   • GET /api/report  (Express route)
- *   • CLI `report` command
- *
- * No logic is duplicated between the two callers.
- */
 export function formatReport(data: ReportData, format: 'text' | 'json' = 'text'): string {
   if (format === 'json') {
     return JSON.stringify(data, null, 2);
@@ -44,7 +23,6 @@ export function formatReport(data: ReportData, format: 'text' | 'json' = 'text')
 
   const lines: string[] = [];
 
-  // ── Title block ───────────────────────────────────────────────────────────
   lines.push('╔' + '═'.repeat(W) + '╗');
   const titleLine = '  KUBERNETES ATTACK PATH ANALYSIS REPORT';
   lines.push('║' + titleLine + ' '.repeat(W - titleLine.length) + '║');
@@ -53,7 +31,6 @@ export function formatReport(data: ReportData, format: 'text' | 'json' = 'text')
   lines.push(`  Generated : ${data.generatedAt}`);
   lines.push('');
 
-  // ── Executive Summary ─────────────────────────────────────────────────────
   const criticalCount = data.attackPaths.filter((p) => p.riskScore >= 7).length;
   const crownJewelsHit = new Set(data.attackPaths.map((p) => p.crownJewel)).size;
 
@@ -66,7 +43,6 @@ export function formatReport(data: ReportData, format: 'text' | 'json' = 'text')
   lines.push(`  Critical Chokepoint : ${data.criticalNode?.nodeId ?? 'none detected'}`);
   lines.push('');
 
-  // ── Attack Paths ──────────────────────────────────────────────────────────
   lines.push(header('ATTACK PATHS  (BFS — all routes, ordered by risk)'));
   if (data.attackPaths.length === 0) {
     lines.push('  No attack paths found. Graph may not be loaded.');
@@ -82,7 +58,6 @@ export function formatReport(data: ReportData, format: 'text' | 'json' = 'text')
     }
   }
 
-  // ── Dijkstra Shortest Paths ───────────────────────────────────────────────
   lines.push(header('SHORTEST PATHS  (Dijkstra GDS — minimum-weight route)'));
   if (data.dijkstraPaths.length === 0) {
     lines.push('  No GDS paths found.');
@@ -96,7 +71,6 @@ export function formatReport(data: ReportData, format: 'text' | 'json' = 'text')
     }
   }
 
-  // ── Blast Radius ──────────────────────────────────────────────────────────
   lines.push(header('BLAST RADIUS  (nodes reachable from each entry point)'));
   if (data.blastRadii.length === 0) {
     lines.push('  No entry points found.');
@@ -112,7 +86,6 @@ export function formatReport(data: ReportData, format: 'text' | 'json' = 'text')
   }
   lines.push('');
 
-  // ── Privilege Escalation Cycles ───────────────────────────────────────────
   lines.push(header('PRIVILEGE ESCALATION CYCLES'));
   if (data.cycles.length === 0) {
     lines.push('  No cycles detected. ✔');
@@ -126,7 +99,6 @@ export function formatReport(data: ReportData, format: 'text' | 'json' = 'text')
     }
   }
 
-  // ── Critical Node ─────────────────────────────────────────────────────────
   lines.push(header('CRITICAL NODE  (highest betweenness centrality)'));
   if (!data.criticalNode) {
     lines.push('  No critical node data available.');

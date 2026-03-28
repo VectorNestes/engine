@@ -5,16 +5,6 @@ import { getBlastRadius }   from '../../db/queries';
 
 const router = Router();
 
-/**
- * GET /api/blast-radius
- *
- * Returns every node reachable from a given node within maxHops.
- * Useful for: "if this service account is compromised, what can it reach?"
- *
- * Query params:
- *   nodeId   — node ID in namespace:name format  (REQUIRED)
- *   maxHops  — traversal depth                   (default 8, max 20)
- */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   const parsed = BlastQuerySchema.safeParse(req.query);
   if (!parsed.success) {

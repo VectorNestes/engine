@@ -7,18 +7,7 @@ import { ensureProjection }  from '../../db/queries';
 
 const router = Router();
 
-/**
- * POST /api/ingest
- *
- * Integration core — runs the full 3-step pipeline:
- *   1. ingestCluster()   — Teammate 1: fetch → transform → enrich → write JSON
- *   2. loadGraph()       — Teammate 2: load JSON into Neo4j
- *   3. ensureProjection() — Re-project GDS (MANDATORY — stale projection breaks Dijkstra)
- *
- * Each step has isolated error handling so the client knows exactly where failure occurred.
- */
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
-  // ── Validate input ────────────────────────────────────────────────────────
   const parsed = IngestInputSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid request body', details: parsed.error.errors });
@@ -27,7 +16,6 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
 
   const { source, skipCve, wipe } = parsed.data;
 
-  // ── Step 1: Ingestion (Teammate 1) ────────────────────────────────────────
   let graphPath: string;
   let ingestNodes: number;
   let ingestEdges: number;
@@ -45,7 +33,6 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     return;
   }
 
-  // ── Step 2: Load into Neo4j (Teammate 2) ──────────────────────────────────
   let loaderStats: { nodesLoaded: number; edgesLoaded: number; durationMs: number };
 
   try {
@@ -58,7 +45,6 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     return;
   }
 
-  // ── Step 3: Re-project GDS (ALWAYS after loading) ─────────────────────────
   try {
     await ensureProjection(true);
   } catch (err) {

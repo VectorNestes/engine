@@ -20,21 +20,21 @@ export function VulnerabilitiesView() {
         {/* Summary bar */}
         {vulnSummary && (
           <div style={{ display: 'flex', gap: 20, padding: '10px 16px', borderBottom: '1px solid #1F1F1F' }}>
-            <span style={{ fontSize: 11, color: '#555555' }}>
+            <span style={{ fontSize: 13, color: '#555555' }}>
               Total <span style={{ fontFamily: 'monospace', color: '#888888' }}>{vulnSummary.total}</span>
             </span>
             {vulnSummary.critical > 0 && (
-              <span style={{ fontSize: 11, color: '#555555' }}>
+              <span style={{ fontSize: 13, color: '#555555' }}>
                 Critical <span style={{ fontFamily: 'monospace', color: '#FF3B3B' }}>{vulnSummary.critical}</span>
               </span>
             )}
             {vulnSummary.high > 0 && (
-              <span style={{ fontSize: 11, color: '#555555' }}>
+              <span style={{ fontSize: 13, color: '#555555' }}>
                 High <span style={{ fontFamily: 'monospace', color: '#FFA726' }}>{vulnSummary.high}</span>
               </span>
             )}
             {vulnSummary.withCves > 0 && (
-              <span style={{ fontSize: 11, color: '#555555' }}>
+              <span style={{ fontSize: 13, color: '#555555' }}>
                 CVEs <span style={{ fontFamily: 'monospace', color: '#888888' }}>{vulnSummary.withCves}</span>
               </span>
             )}
@@ -64,11 +64,11 @@ export function VulnerabilitiesView() {
 
         {/* Table */}
         {vulnerabilities.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #1F1F1F' }}>
                 {['Node', 'Type', 'Priority', 'Risk', 'CVEs', 'Reason'].map((h) => (
-                  <th key={h} style={{ textAlign: 'left', padding: '8px 14px', fontSize: 9, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 500 }}>
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 14px', fontSize: 11, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 500 }}>
                     {h}
                   </th>
                 ))}
@@ -90,12 +90,12 @@ export function VulnerabilitiesView() {
                     onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = '#FF6A0008')}
                     onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = i % 2 === 0 ? 'transparent' : '#FFFFFF03')}
                   >
-                    <td style={{ padding: '9px 14px', fontFamily: 'monospace', fontSize: 11, color: '#FF6A00', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '9px 14px', fontFamily: 'monospace', fontSize: 13, color: '#FF6A00', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {v.nodeId.split(':').pop()}
                     </td>
-                    <td style={{ padding: '9px 14px', color: '#888888', fontSize: 11 }}>{v.type}</td>
+                    <td style={{ padding: '9px 14px', color: '#888888', fontSize: 13 }}>{v.type}</td>
                     <td style={{ padding: '9px 14px' }}>
-                      <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 600, color, background: bg, padding: '1px 6px', borderRadius: 4, border: `1px solid ${color}30` }}>
+                      <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 600, color, background: bg, padding: '2px 7px', borderRadius: 4, border: `1px solid ${color}30` }}>
                         {label}
                       </span>
                     </td>
@@ -106,18 +106,18 @@ export function VulnerabilitiesView() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {v.cves.length > 0
                           ? v.cves.slice(0, 2).map((c) => (
-                              <span key={c} style={{ fontFamily: 'monospace', fontSize: 9, padding: '1px 5px', background: '#FF3B3B15', color: '#FF3B3B', border: '1px solid #FF3B3B30', borderRadius: 3 }}>
+                              <span key={c} style={{ fontFamily: 'monospace', fontSize: 11, padding: '2px 6px', background: '#FF3B3B15', color: '#FF3B3B', border: '1px solid #FF3B3B30', borderRadius: 3 }}>
                                 {c}
                               </span>
                             ))
                           : <span style={{ color: '#333333' }}>—</span>
                         }
                         {v.cves.length > 2 && (
-                          <span style={{ fontSize: 10, color: '#555555' }}>+{v.cves.length - 2}</span>
+                          <span style={{ fontSize: 12, color: '#555555' }}>+{v.cves.length - 2}</span>
                         )}
                       </div>
                     </td>
-                    <td style={{ padding: '9px 14px', color: '#555555', maxWidth: 240 }}>
+                    <td style={{ padding: '9px 14px', color: '#555555', fontSize: 13, maxWidth: 240 }}>
                       <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {v.reason}
                       </span>

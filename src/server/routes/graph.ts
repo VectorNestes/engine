@@ -4,12 +4,6 @@ import { runQuery } from '../../db/neo4j-client';
 
 const router = Router();
 
-/**
- * GET /api/graph
- *
- * Returns all nodes and edges currently stored in Neo4j.
- * No query parameters — always returns the full graph.
- */
 router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [nodesResult, edgesResult] = await Promise.all([

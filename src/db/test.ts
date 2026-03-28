@@ -1,21 +1,3 @@
-/**
- * src/db/test.ts — Graph & Algorithms Engine Integration Test
- *
- * Verifies the full pipeline:
- *   1. Neo4j connectivity + GDS version
- *   2. Graph ingestion from mock dataset
- *   3. BFS attack-path discovery
- *   4. Dijkstra shortest-path (GDS)
- *   5. DFS cycle detection
- *   6. Betweenness centrality (GDS)
- *   7. Blast-radius query (bonus)
- *
- * Usage:
- *   npx ts-node src/db/test.ts
- *   npx ts-node src/db/test.ts --skip-load   # if graph is already in Neo4j
- *   npx ts-node src/db/test.ts --wipe        # wipe + reload before tests
- */
-
 import * as path from 'path';
 
 import { verifyConnection, closeDriver } from './neo4j-client';
@@ -30,10 +12,6 @@ import {
   getBlastRadius,
 }                                        from './queries';
 import { TestSummary }                   from './types';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
 
 function banner(title: string): void {
   const line = '═'.repeat(62);
@@ -51,10 +29,6 @@ function section(title: string): void {
 function pass(msg: string): void { console.log(`  ✅  ${msg}`); }
 function fail(msg: string): void { console.log(`  ❌  ${msg}`); }
 function info(msg: string): void { console.log(`  ℹ️   ${msg}`); }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// TEST STEPS
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function testLoad(mockPath: string, wipe: boolean): Promise<void> {
   section('STEP 1 — Graph Ingestion');
@@ -88,7 +62,6 @@ async function testBfs(summary: Partial<TestSummary>): Promise<void> {
     fail(`Only ${paths.length} attack path(s) found — expected at least 6`);
   }
 
-  // Print top 5 paths
   console.log(`\n  Top ${Math.min(5, paths.length)} paths (by total weight):\n`);
   for (const p of paths.slice(0, 5)) {
     const route = p.nodeIds.join(' → ');
@@ -97,7 +70,6 @@ async function testBfs(summary: Partial<TestSummary>): Promise<void> {
     console.log();
   }
 
-  // Verify entry points and crown jewels are correct
   const entries = new Set(paths.map((p) => p.entryPoint));
   const crowns  = new Set(paths.map((p) => p.crownJewel));
 
@@ -108,7 +80,6 @@ async function testBfs(summary: Partial<TestSummary>): Promise<void> {
 async function testDijkstra(summary: Partial<TestSummary>): Promise<void> {
   section('STEP 3 — Dijkstra Shortest-Risk Path (GDS)');
 
-  // Known shortest path in mock data: api-lb → api-server → api-sa → api-cluster-role → tls-private-key
   const SOURCE = 'production:api-lb';
   const TARGET = 'default:tls-private-key';
 
@@ -127,7 +98,6 @@ async function testDijkstra(summary: Partial<TestSummary>): Promise<void> {
     fail(`No path found between ${SOURCE} and ${TARGET}`);
   }
 
-  // Also try a second pair: frontend-lb → production-postgres
   const result2 = await findShortestPath('production:frontend-lb', 'production:production-postgres');
   if (result2) {
     info(`frontend-lb → production-postgres: ${result2.hops} hops, cost ${result2.totalCost.toFixed(1)}`);
@@ -150,7 +120,6 @@ async function testCycles(summary: Partial<TestSummary>): Promise<void> {
       console.log();
     }
 
-    // Specifically check for the known frontend → frontend-sa → pod-executor cycle
     const hasFrontendCycle = cycles.some((c) =>
       c.cycleNodeIds.some((id) => id.includes('frontend-sa')) &&
       c.cycleNodeIds.some((id) => id.includes('pod-executor'))
@@ -197,7 +166,6 @@ async function testCentrality(summary: Partial<TestSummary>): Promise<void> {
 async function testBlastRadius(): Promise<void> {
   section('STEP 6 (Bonus) — Blast Radius');
 
-  // If api-sa is compromised, what can it reach?
   const startNode = 'production:api-sa';
   const reachable = await getBlastRadius(startNode, 6);
 
@@ -215,17 +183,11 @@ async function testBlastRadius(): Promise<void> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN
-// ─────────────────────────────────────────────────────────────────────────────
-
 async function main(): Promise<void> {
   const args      = process.argv.slice(2);
   const skipLoad  = args.includes('--skip-load');
   const wipe      = args.includes('--wipe');
 
-  // Use the generated (transformed) graph — run `npm run db:generate` first.
-  // Falls back through loader's candidate list if not specified.
   const mockPath  = path.resolve(process.cwd(), 'data', 'cluster-graph.json');
 
   banner('🔐 K8s Attack Graph — Algorithm Engine Test Suite');
@@ -234,22 +196,18 @@ async function main(): Promise<void> {
   let allPassed = true;
 
   try {
-    // ── Connectivity ─────────────────────────────────────────────────────────
     section('STEP 0 — Connectivity');
     await verifyConnection();
     pass('Neo4j reachable + GDS installed');
 
-    // ── Load ─────────────────────────────────────────────────────────────────
     if (!skipLoad) {
       await testLoad(mockPath, wipe);
     } else {
       info('Skipping load (--skip-load flag set)');
     }
 
-    // ── Ensure GDS projection before algorithm tests ──────────────────────
-    await ensureProjection(wipe);  // force refresh if we wiped
+    await ensureProjection(wipe);
 
-    // ── Algorithms ───────────────────────────────────────────────────────────
     await testBfs(summary);
     await testDijkstra(summary);
     await testCycles(summary);
@@ -262,7 +220,6 @@ async function main(): Promise<void> {
     fail(`Unexpected error: ${msg}`);
     console.error(err);
   } finally {
-    // Drop the in-memory projection to free GDS memory
     await dropProjection().catch(() => { /* ignore */ });
     await closeDriver();
   }
@@ -271,7 +228,6 @@ async function main(): Promise<void> {
     (summary.attackPathsFound ?? 0) >= 6 &&
     (summary.cyclesFound       ?? 0) >= 0;
 
-  // ── Final report ───────────────────────────────────────────────────────────
   banner('📊 Test Summary');
   console.log(`  Attack paths found  : ${summary.attackPathsFound ?? '—'}`);
   console.log(`  Shortest path hops  : ${summary.shortestPathHops  ?? '—'}`);

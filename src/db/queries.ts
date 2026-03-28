@@ -8,18 +8,8 @@ import {
   PathRelationship,
 } from './types';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GDS GRAPH PROJECTION MANAGEMENT
-//
-// GDS algorithms require a named in-memory graph projection.
-// We cache it for the lifetime of the process and only re-project on demand.
-// ─────────────────────────────────────────────────────────────────────────────
-
 const PROJECTION_NAME = 'attackGraph';
 
-/**
- * Returns true if the named GDS in-memory graph already exists.
- */
 async function projectionExists(): Promise<boolean> {
   const rows = await runQuery<{ exists: boolean }>(
     `RETURN gds.graph.exists($name) AS exists`,
@@ -28,15 +18,6 @@ async function projectionExists(): Promise<boolean> {
   return rows[0]?.exists ?? false;
 }
 
-/**
- * Projects the K8sNode graph into GDS memory.
- *
- * • Uses 'K8sNode' as the node filter (all Kubernetes nodes share this label).
- * • Projects ALL relationship types with their `weight` property.
- * • Stores riskScore as a node property for potential future use.
- *
- * This is idempotent — if the projection already exists it is reused.
- */
 export async function ensureProjection(forceRefresh = false): Promise<void> {
   if (!forceRefresh && (await projectionExists())) {
     console.log(`  → GDS projection '${PROJECTION_NAME}' already exists — reusing`);
@@ -50,13 +31,10 @@ export async function ensureProjection(forceRefresh = false): Promise<void> {
 
   console.log(`  → Projecting graph into GDS memory...`);
 
-  // Query which relationship types actually exist — GDS fails if any listed
-  // type is absent, so we build the projection dynamically from what's in DB.
   const relRows = await runQuery<{ type: string }>(
     `MATCH ()-[r:K8sNode|USES_SERVICE_ACCOUNT|BINDS_TO|HAS_ACCESS|EXPOSES|MOUNTS_SECRET|READS_CONFIGMAP|CAN_EXEC_INTO]->() RETURN DISTINCT type(r) AS type`
   );
 
-  // Fallback: query all relationship types if none of the known types exist
   const knownTypes = relRows.map((r) => r.type);
   const typesToProject = knownTypes.length > 0
     ? knownTypes
@@ -66,8 +44,6 @@ export async function ensureProjection(forceRefresh = false): Promise<void> {
     throw new Error('No relationships found in the database. Run POST /api/ingest first.');
   }
 
-  // Build relationship projection — only include types that exist.
-  // typesToProject comes from a closed MATCH filter above, so no injection risk.
   const relProjection = typesToProject
     .map((t) => `${t}: { properties: 'weight', orientation: 'NATURAL' }`)
     .join(',\n        ');
@@ -91,26 +67,12 @@ export async function ensureProjection(forceRefresh = false): Promise<void> {
   console.log(`  ✔ GDS projection '${PROJECTION_NAME}' created (types: ${typesToProject.join(', ')})`);
 }
 
-/** Drops the in-memory projection (call after algorithms to free memory). */
 export async function dropProjection(): Promise<void> {
   if (await projectionExists()) {
     await runQuery(`CALL gds.graph.drop($name, false)`, { name: PROJECTION_NAME });
     console.log(`  ✔ GDS projection dropped`);
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ALGORITHM 1 — BFS: ALL ATTACK PATHS
-//
-// Uses Cypher variable-length path matching to find every route from an
-// entry-point node to a crown-jewel node.
-//
-// Why Cypher (not GDS BFS)?
-//   • GDS BFS finds shortest paths from a single source.
-//   • We need ALL paths across ALL (entry, crown-jewel) pairs.
-//   • Cypher's [*1..maxHops] does this naturally.
-//   • With 42 nodes and maxHops=10 the result set is manageable.
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface BfsRow {
   entryPoint:    string;
@@ -123,20 +85,12 @@ interface BfsRow {
   riskScore:     number;
 }
 
-/**
- * Finds ALL attack paths from entry-point nodes to crown-jewel nodes.
- *
- * @param maxHops  Maximum path length in edges (default 10)
- * @param limit    Maximum number of paths to return, sorted by totalWeight DESC
- */
 export async function findAttackPaths(
   maxHops = 10,
   limit   = 50
 ): Promise<PathResult[]> {
   console.log(`\n  → Running BFS attack-path discovery (maxHops=${maxHops})...`);
 
-  // We extract all node/edge data in Cypher so TypeScript never sees raw
-  // Neo4j Node/Relationship/Path objects.
   const rows = await runQuery<BfsRow>(`
     MATCH p = (start:K8sNode)-[*1..${maxHops}]->(end:K8sNode)
     WHERE start.isEntryPoint = true
@@ -200,18 +154,6 @@ export async function findAttackPaths(
   })) as PathResult[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ALGORITHM 2 — DIJKSTRA: SHORTEST RISK PATH (GDS)
-//
-// Uses gds.shortestPath.dijkstra to find the minimum-weight path between
-// a specific source and target node.
-//
-// Weight = privilege severity (higher weight = more dangerous hop).
-// Dijkstra minimises total weight → returns the safest (lowest risk) path,
-// which in threat modelling means: the path the attacker would prefer
-// (lowest resistance / detectable footprint).
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface DijkstraRow {
   sourceId:    string;
   targetId:    string;
@@ -221,13 +163,6 @@ interface DijkstraRow {
   hops:        number;
 }
 
-/**
- * Finds the shortest (minimum total weight) path between two nodes using
- * the GDS Dijkstra algorithm.
- *
- * @param sourceNodeId  `id` property of the source node  (e.g. "default:nginx-lb")
- * @param targetNodeId  `id` property of the target node  (e.g. "production:db-credentials")
- */
 export async function findShortestPath(
   sourceNodeId: string,
   targetNodeId:  string
@@ -268,32 +203,12 @@ export async function findShortestPath(
   return rows[0] as DijkstraResult;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ALGORITHM 3 — DFS CYCLE DETECTION (privilege escalation loops)
-//
-// A cycle in the RBAC graph means a service account can reach a role that
-// can exec back into the pod using that same service account — a privilege
-// escalation loop.
-//
-// Example detected in mock data:
-//   production:frontend-pod
-//     → [USES_SERVICE_ACCOUNT] → production:frontend-sa
-//     → [BINDS_TO]             → production:pod-executor
-//     → [CAN_EXEC_INTO]        → production:frontend-pod   ← back to start!
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface CycleRow {
   cycleNodeIds:      string[];
   relationshipTypes: string[];
   cycleLength:       number;
 }
 
-/**
- * Detects privilege escalation cycles in the RBAC graph.
- *
- * @param maxDepth  Maximum cycle length to search (default 8 to prevent runaway)
- * @param limit     Maximum number of unique cycles to return
- */
 export async function detectCycles(
   maxDepth = 8,
   limit    = 20
@@ -316,16 +231,6 @@ export async function detectCycles(
   return rows as CycleResult[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ALGORITHM 4 — BETWEENNESS CENTRALITY (GDS)
-//
-// Betweenness centrality = how many shortest paths pass through a node.
-// A high score means this node is a chokepoint: compromising it gives the
-// attacker leverage over many attack paths simultaneously.
-//
-// Defenders should prioritise hardening high-betweenness nodes.
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface CentralityRow {
   nodeId:           string;
   name:             string;
@@ -337,13 +242,6 @@ interface CentralityRow {
   riskScore:        number;
 }
 
-/**
- * Returns the top-N nodes ranked by betweenness centrality.
- * These are the most critical nodes to defend — removing or hardening them
- * breaks the largest number of attack paths.
- *
- * @param topN  Number of nodes to return (default 10)
- */
 export async function findCriticalNodes(topN = 10): Promise<CriticalNode[]> {
   console.log(`\n  → Running betweenness centrality (top ${topN} nodes)...`);
 
@@ -372,13 +270,6 @@ export async function findCriticalNodes(topN = 10): Promise<CriticalNode[]> {
   return rows as CriticalNode[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BONUS — BLAST RADIUS QUERY
-//
-// Given a node id, returns every node reachable from it within N hops.
-// Useful for: "if this service account is compromised, what can it reach?"
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface BlastResult {
   reachableNodeId: string;
   name:            string;
@@ -389,12 +280,6 @@ export interface BlastResult {
   riskScore:       number;
 }
 
-/**
- * Returns every node reachable from a given node within `maxHops` hops.
- *
- * @param startNodeId  `id` property of the starting node
- * @param maxHops      Maximum traversal depth (default 8)
- */
 export async function getBlastRadius(
   startNodeId: string,
   maxHops = 8
@@ -423,24 +308,12 @@ export async function getBlastRadius(
   return rows as BlastResult[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONVENIENCE — runAllAlgorithms()
-//
-// Runs all four core algorithms in sequence with a single call.
-// Used by the test script and can power an API endpoint.
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface AlgorithmResults {
   attackPaths:   PathResult[];
   cycles:        CycleResult[];
   criticalNodes: CriticalNode[];
 }
 
-/**
- * Runs BFS, cycle detection, and betweenness centrality in one call.
- * Dijkstra is NOT included here because it requires specific source/target IDs
- * that depend on the loaded graph; use `findShortestPath()` separately.
- */
 export async function runAllAlgorithms(): Promise<AlgorithmResults> {
   await ensureProjection();
 

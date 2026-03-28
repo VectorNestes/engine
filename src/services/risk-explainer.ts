@@ -1,19 +1,3 @@
-/**
- * risk-explainer.ts
- *
- * Central engine for generating human-readable security explanations.
- * All reasoning is derived dynamically from:
- *   • RBAC graph topology (edges + connected node types)
- *   • CVE scores and image data
- *   • Node role in the attack graph (entry point / crown jewel)
- *
- * No hardcoded explanation strings — every sentence is built from actual data.
- */
-
-// ─────────────────────────────────────────────────────────────────────────────
-// INPUT TYPES
-// ─────────────────────────────────────────────────────────────────────────────
-
 export interface ExplainerNode {
   id:           string;
   type:         string;
@@ -52,10 +36,6 @@ export interface PathRelationship {
   verbs?: string[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
-
 function label(name: string | null | undefined, fallback: string): string {
   return name && name.trim() ? `"${name}"` : fallback;
 }
@@ -65,18 +45,6 @@ function verbList(verbs: string[] | null | undefined): string {
   return verbs.slice(0, 4).join('/');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NODE EXPLANATION
-// Derives reasoning from actual RBAC relationships, CVEs, and topology.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Generates a human-readable security explanation for a single node.
- *
- * @param node     The node being explained
- * @param outEdges Edges originating FROM this node (with connected node metadata)
- * @param inEdges  Edges pointing TO this node (with source node metadata)
- */
 export function explainNode(
   node:     ExplainerNode,
   outEdges: OutEdge[],
@@ -84,7 +52,6 @@ export function explainNode(
 ): string {
   const reasons: string[] = [];
 
-  // ── External exposure ──────────────────────────────────────────────────────
   if (node.isEntryPoint) {
     if (node.type === 'Service') {
       reasons.push(
@@ -97,7 +64,6 @@ export function explainNode(
     }
   }
 
-  // ── Crown jewel impact ────────────────────────────────────────────────────
   if (node.isCrownJewel) {
     if (node.type === 'Secret') {
       reasons.push(
@@ -114,7 +80,6 @@ export function explainNode(
     }
   }
 
-  // ── CVE-based risk ────────────────────────────────────────────────────────
   if (node.cve && node.cve.length > 0) {
     const cveList  = node.cve.slice(0, 3).join(', ');
     const morePart = node.cve.length > 3 ? ` (+${node.cve.length - 3} more)` : '';
@@ -125,7 +90,6 @@ export function explainNode(
     );
   }
 
-  // ── Type-specific RBAC analysis ───────────────────────────────────────────
   switch (node.type) {
 
     case 'Pod': {
@@ -262,7 +226,6 @@ export function explainNode(
     }
   }
 
-  // ── Fallback ──────────────────────────────────────────────────────────────
   if (reasons.length === 0) {
     reasons.push(
       `Risk score ${node.riskScore}/10 — this ${node.type.toLowerCase()} ${label(node.name, '')} ` +
@@ -273,18 +236,6 @@ export function explainNode(
   return reasons.join(' ');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PATH EXPLANATION
-// Builds a step-by-step attack narrative from ordered nodes + relationships.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Generates a human-readable narrative describing how an attacker traverses
- * the given attack path from entry point to crown jewel.
- *
- * @param nodes         Ordered list of nodes in the path
- * @param relationships Ordered list of relationships connecting them
- */
 export function explainPath(
   nodes:         ExplainerNode[],
   relationships: PathRelationship[]
@@ -295,7 +246,6 @@ export function explainPath(
   const target = nodes[nodes.length - 1]!;
   const steps:  string[] = [];
 
-  // ── Step 1: Entry ─────────────────────────────────────────────────────────
   if (entry.type === 'Service') {
     steps.push(
       `Attacker gains initial access through externally exposed service ${label(entry.name, 'a service')}`
@@ -311,7 +261,6 @@ export function explainPath(
     );
   }
 
-  // ── Steps 2..N: Traversal ─────────────────────────────────────────────────
   for (let i = 0; i < relationships.length; i++) {
     const rel  = relationships[i]!;
     const next = nodes[i + 1];
@@ -347,8 +296,6 @@ export function explainPath(
     }
   }
 
-  // ── Final impact ──────────────────────────────────────────────────────────
-  // Only append an impact sentence if the last step didn't already describe it
   const lastRel = relationships[relationships.length - 1];
   const alreadyDescribed = lastRel?.type === 'MOUNTS_SECRET' || lastRel?.type === 'HAS_ACCESS';
 
@@ -371,15 +318,6 @@ export function explainPath(
   return steps.join(' → ') + '.';
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VULNERABILITY REASON SUMMARY
-// Short one-liner for the `reason` field in /api/vulnerabilities
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Returns a concise one-line reason why a node is considered vulnerable.
- * Derived from the same data as explainNode but optimised for a summary field.
- */
 export function summariseRisk(
   node:     ExplainerNode,
   outEdges: OutEdge[],

@@ -10,19 +10,6 @@ import {
 
 const router = Router();
 
-/**
- * GET /api/paths
- *
- * BFS attack-path discovery across ALL (entryPoint, crownJewel) pairs.
- * Each path includes a `description` field that explains:
- *   • How the attacker enters (entry point type + CVEs)
- *   • How privileges escalate (each RBAC hop)
- *   • What the final impact is (crown jewel compromise)
- *
- * Query params:
- *   maxHops  — max traversal depth    (default 10, max 20)
- *   limit    — max paths to return    (default 50, max 200)
- */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   const parsed = PathsQuerySchema.safeParse(req.query);
   if (!parsed.success) {
@@ -36,7 +23,6 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const rawPaths = await findAttackPaths(maxHops, limit);
 
     const paths = rawPaths.map((p) => {
-      // Cast to explainer types — QueryNode is a superset of ExplainerNode
       const explainerNodes = p.nodes as ExplainerNode[];
       const explainerRels  = p.relationships as PathRelationship[];
 
@@ -48,7 +34,6 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         hops:        p.hops,
         totalWeight: p.totalWeight,
         description: explainPath(explainerNodes, explainerRels),
-        // Full node + relationship detail for frontend graph animation
         nodeDetail:  p.nodes,
         edgeDetail:  p.relationships,
       };

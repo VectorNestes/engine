@@ -19,14 +19,14 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid #1F1F1F' }}>
-        <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#FF6A00', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>
+        <div style={{ fontSize: 14, fontFamily: 'monospace', color: '#FF6A00', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>
           K8s-AV
         </div>
-        <div style={{ fontSize: 10, color: '#888888', marginTop: 3 }}>Attack Path Visualizer</div>
+        <div style={{ fontSize: 12, color: '#888888', marginTop: 3 }}>Attack Path Visualizer</div>
       </div>
 
       {/* Section label */}
-      <div style={{ padding: '16px 16px 8px', fontSize: 9, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+      <div style={{ padding: '16px 16px 8px', fontSize: 11, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
         Navigation
       </div>
 
@@ -46,7 +46,7 @@ export function Sidebar() {
                 borderRadius: 8,
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: 12,
+                fontSize: 14,
                 textAlign: 'left',
                 transition: 'all 0.15s',
                 background: active ? '#FF6A0012' : 'transparent',
@@ -67,7 +67,7 @@ export function Sidebar() {
                 }
               }}
             >
-              <span style={{ fontSize: 14, width: 16, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
+              <span style={{ fontSize: 16, width: 16, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
               <span>{label}</span>
             </button>
           );
@@ -76,7 +76,7 @@ export function Sidebar() {
 
       {/* Stats footer */}
       <div style={{ padding: '12px 16px', borderTop: '1px solid #1F1F1F', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontSize: 9, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>
+        <div style={{ fontSize: 11, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>
           Cluster Stats
         </div>
         {graphMeta && (
@@ -100,8 +100,8 @@ export function Sidebar() {
 function StatRow({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ fontSize: 11, color: '#555555' }}>{label}</span>
-      <span style={{ fontSize: 11, fontFamily: 'monospace', color: danger ? '#FF3B3B' : '#888888' }}>{value}</span>
+      <span style={{ fontSize: 13, color: '#555555' }}>{label}</span>
+      <span style={{ fontSize: 13, fontFamily: 'monospace', color: danger ? '#FF3B3B' : '#888888' }}>{value}</span>
     </div>
   );
 }

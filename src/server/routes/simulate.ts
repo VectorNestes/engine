@@ -5,20 +5,6 @@ import { runQuery }            from '../../db/neo4j-client';
 
 const router = Router();
 
-/**
- * POST /api/simulate
- *
- * Simulates removing a node from the attack graph — WITHOUT mutating the database.
- *
- * Runs BOTH counts in parallel via Promise.all for sub-500ms performance:
- *   • Baseline  : total attack paths (entryPoint → crownJewel)
- *   • Filtered  : paths that do NOT traverse the target node
- *     Filter:  NONE(n IN nodes(p) WHERE n.id = $id)
- *
- * Body params:
- *   nodeId   — ID of the node to simulate removing (namespace:name)
- *   maxHops  — max path length to consider (default 10, max 20)
- */
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   const parsed = SimulateInputSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -31,7 +17,6 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const start = Date.now();
 
-    // Run baseline and filtered counts in PARALLEL
     const [baselineRows, filteredRows] = await Promise.all([
       runQuery<{ count: number }>(`
         MATCH p = (s:K8sNode)-[*1..${maxHops}]->(e:K8sNode)

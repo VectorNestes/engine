@@ -1,10 +1,6 @@
 import { Node, Edge, Graph, NodeType } from './schema';
 import { RawClusterData } from './fetcher';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INTERNAL TYPES
-// ─────────────────────────────────────────────────────────────────────────────
-
 interface KubeMetadata {
   name: string;
   namespace: string;
@@ -18,10 +14,6 @@ interface RoleRule {
   verbs: string[];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CONSTANTS — Crown-jewel heuristics
-// ─────────────────────────────────────────────────────────────────────────────
-
 const CROWN_JEWEL_SECRET_PATTERNS = [
   'credential', 'password', 'passwd', 'key', 'token', 'cert',
   'tls', 'db', 'database', 'jwt', 'secret', 'private', 'admin',
@@ -33,10 +25,6 @@ const MOCK_DB_NODES: Array<{ name: string; namespace: string }> = [
   { name: 'production-postgres', namespace: 'production' },
   { name: 'production-redis', namespace: 'production' },
 ];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PURE UTILITIES
-// ─────────────────────────────────────────────────────────────────────────────
 
 const makeId = (namespace: string, name: string): string =>
   `${namespace}:${name}`;
@@ -58,18 +46,6 @@ function safeMeta(item: unknown): KubeMetadata {
   };
 }
 
-/**
- * Converts a set of RBAC verbs to an edge weight (0–10).
- *
- * Scale:
- *  wildcard / admin        → 10
- *  delete / deletecollection → 9
- *  create / update / patch → 7
- *  pods/exec (create)      → 8
- *  list                    → 4
- *  get / watch             → 3
- *  others                  → 2
- */
 function verbsToWeight(verbs: string[]): number {
   if (!verbs || verbs.length === 0) return 1;
   if (verbs.includes('*')) return 10;
@@ -80,10 +56,6 @@ function verbsToWeight(verbs: string[]): number {
   return 2;
 }
 
-/**
- * Returns true if all key/value pairs in `selector` exist in `labels`.
- * Empty selector → no match.
- */
 function selectorMatches(
   selector: Record<string, string>,
   labels: Record<string, string>
@@ -108,10 +80,6 @@ function CROWN_JEWEL_PATTERNS_match(name: string): boolean {
   return CROWN_JEWEL_SECRET_PATTERNS.some((p) => name.includes(p));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// EDGE DEDUPLICATION
-// ─────────────────────────────────────────────────────────────────────────────
-
 class EdgeSet {
   private keys = new Set<string>();
   private edges: Edge[] = [];
@@ -129,31 +97,10 @@ class EdgeSet {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN TRANSFORMER
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Converts raw Kubernetes resource lists into a directed attack graph.
- *
- * Node creation order:
- *   1. Pods → 2. ServiceAccounts → 3. Roles → 4. ClusterRoles
- *   5. Secrets → 6. ConfigMaps → 7. Services (entry points) → 8. Mock DBs
- *
- * Edge creation order:
- *   1. Pod → ServiceAccount (USES_SERVICE_ACCOUNT)
- *   2. Service → Pod (EXPOSES)
- *   3. ServiceAccount → Role/ClusterRole (BINDS_TO via RoleBindings)
- *   4. ServiceAccount → ClusterRole (BINDS_TO via ClusterRoleBindings)
- *   5. Role → Resources (HAS_ACCESS via rules)
- *   6. ClusterRole → Resources (HAS_ACCESS via rules, cross-namespace)
- */
 export function transformToGraph(raw: RawClusterData): Graph {
   const nodes: Node[] = [];
   const nodeSet = new Set<string>();
   const edgeSet = new EdgeSet();
-
-  // ── Node registry helpers ─────────────────────────────────────────────────
 
   function addNode(node: Node): void {
     if (!nodeSet.has(node.id)) {
@@ -166,11 +113,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     return nodeSet.has(id);
   }
 
-  // =========================================================================
-  // PHASE 1 — NODE CREATION
-  // =========================================================================
-
-  // ── 1. PODS ───────────────────────────────────────────────────────────────
   const podItems = safeItems(raw.pods);
   for (const item of podItems) {
     const { name, namespace, labels, annotations } = safeMeta(item);
@@ -195,11 +137,9 @@ export function transformToGraph(raw: RawClusterData): Graph {
     });
   }
 
-  // ── 2. SERVICE ACCOUNTS ───────────────────────────────────────────────────
   const saItems = safeItems(raw.serviceAccounts);
   for (const item of saItems) {
     const { name, namespace } = safeMeta(item);
-    // Skip the default kube-system SA (system noise)
     if (name === 'default' && namespace === 'kube-system') continue;
 
     addNode({
@@ -213,7 +153,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     });
   }
 
-  // ── 3. ROLES ──────────────────────────────────────────────────────────────
   const roleItems = safeItems(raw.roles);
   for (const item of roleItems) {
     const { name, namespace } = safeMeta(item);
@@ -228,11 +167,9 @@ export function transformToGraph(raw: RawClusterData): Graph {
     });
   }
 
-  // ── 4. CLUSTER ROLES ──────────────────────────────────────────────────────
   const crItems = safeItems(raw.clusterRoles);
   for (const item of crItems) {
     const { name } = safeMeta(item);
-    // Skip the hundreds of built-in system: roles — they add noise
     if (name.startsWith('system:')) continue;
 
     addNode({
@@ -246,14 +183,12 @@ export function transformToGraph(raw: RawClusterData): Graph {
     });
   }
 
-  // ── 5. SECRETS ────────────────────────────────────────────────────────────
   const secretItems = safeItems(raw.secrets);
   for (const item of secretItems) {
     const { name, namespace, labels } = safeMeta(item);
     const secret = item as Record<string, unknown>;
     const secretType = (secret['type'] as string | undefined) ?? '';
 
-    // Skip SA tokens and helm release secrets (system noise)
     if (secretType === 'kubernetes.io/service-account-token') continue;
     if (name.startsWith('sh.helm.release')) continue;
 
@@ -271,11 +206,9 @@ export function transformToGraph(raw: RawClusterData): Graph {
     });
   }
 
-  // ── 6. CONFIGMAPS ─────────────────────────────────────────────────────────
   const cmItems = safeItems(raw.configMaps);
   for (const item of cmItems) {
     const { name, namespace, labels } = safeMeta(item);
-    // Skip kube-system noise
     if (name === 'kube-root-ca.crt') continue;
     if (namespace === 'kube-system' && !name.includes('user')) continue;
 
@@ -291,7 +224,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     });
   }
 
-  // ── 7. SERVICES — Entry points ────────────────────────────────────────────
   const serviceItems = safeItems(raw.services ?? { items: [] });
   for (const item of serviceItems) {
     const { name, namespace, labels } = safeMeta(item);
@@ -313,7 +245,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     });
   }
 
-  // ── 8. MOCK DATABASE NODES — Always injected ──────────────────────────────
   for (const db of MOCK_DB_NODES) {
     const id = makeId(db.namespace, db.name);
     if (!hasNode(id)) {
@@ -329,11 +260,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     }
   }
 
-  // =========================================================================
-  // PHASE 2 — EDGE CREATION
-  // =========================================================================
-
-  // ── Edge 1: Pod → ServiceAccount ──────────────────────────────────────────
   for (const item of podItems) {
     const { name: podName, namespace } = safeMeta(item);
     const pod = item as Record<string, unknown>;
@@ -353,7 +279,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     }
   }
 
-  // ── Edge 2: Service → Pod (EXPOSES) ───────────────────────────────────────
   for (const item of serviceItems) {
     const { name: svcName, namespace } = safeMeta(item);
     const svc = item as Record<string, unknown>;
@@ -384,7 +309,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     }
   }
 
-  // ── Edge 3: ServiceAccount → Role/ClusterRole (RoleBindings) ──────────────
   const rbItems = safeItems(raw.roleBindings);
   for (const item of rbItems) {
     const { namespace } = safeMeta(item);
@@ -417,7 +341,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     }
   }
 
-  // ── Edge 4: ServiceAccount → ClusterRole (ClusterRoleBindings) ────────────
   const crbItems = safeItems(raw.clusterRoleBindings);
   for (const item of crbItems) {
     const crb = item as Record<string, unknown>;
@@ -447,14 +370,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     }
   }
 
-  // ── Edge 5 & 6: Role/ClusterRole → Resources (HAS_ACCESS) ─────────────────
-
-  /**
-   * Given a set of resources and verbs from a role rule, finds matching
-   * nodes and returns (targetId, weight) pairs.
-   *
-   * roleNamespace = 'cluster' means cross-namespace access (ClusterRole).
-   */
   function resolveAccessTargets(
     resources: string[],
     verbs: string[],
@@ -472,7 +387,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     for (const resource of resources) {
       const r = resource.toLowerCase();
 
-      // SECRETS
       if (r === 'secrets' || r === '*') {
         const w = verbsToWeight(verbs);
         for (const n of nodes) {
@@ -482,13 +396,11 @@ export function transformToGraph(raw: RawClusterData): Graph {
         }
       }
 
-      // CONFIGMAPS
       if (r === 'configmaps' || r === '*') {
         const w = verbsToWeight(verbs);
         for (const n of nodes) {
           if (n.type === 'ConfigMap' && inNamespace(n.namespace)) {
             targets.push({ id: n.id, weight: w, edgeType: 'HAS_ACCESS' });
-            // If a configmap looks DB-related, also link to the DB node
             if (n.name.toLowerCase().includes('db') || n.name.toLowerCase().includes('database')) {
               for (const db of nodes) {
                 if (db.type === 'Database' && inNamespace(db.namespace)) {
@@ -500,7 +412,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
         }
       }
 
-      // POD EXEC — creates lateral movement edges
       if (r === 'pods/exec' || r === 'pods/exec,pods') {
         if (verbs.includes('create') || verbs.includes('*')) {
           for (const n of nodes) {
@@ -511,7 +422,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
         }
       }
 
-      // WILDCARD resources — access all sensitive nodes
       if (r === '*') {
         for (const n of nodes) {
           if (n.type === 'Database' && inNamespace(n.namespace)) {
@@ -550,7 +460,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     }
   }
 
-  // Process namespaced Roles
   for (const item of roleItems) {
     const { name, namespace } = safeMeta(item);
     const role = item as Record<string, unknown>;
@@ -560,7 +469,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     processRules(roleId, rules, namespace);
   }
 
-  // Process ClusterRoles (cross-namespace access)
   for (const item of crItems) {
     const { name } = safeMeta(item);
     if (name.startsWith('system:')) continue;
@@ -570,12 +478,6 @@ export function transformToGraph(raw: RawClusterData): Graph {
     const rules = ((cr['rules'] as unknown[] | undefined) ?? []) as RoleRule[];
     processRules(crId, rules, 'cluster');
   }
-
-  // =========================================================================
-  // PHASE 3 — RISK SCORE PROPAGATION
-  // =========================================================================
-  // Assign a non-zero risk score to nodes based on the highest-weight
-  // incoming edge (attackers care about what CAN be done to a node).
 
   const incomingMaxWeight = new Map<string, number>();
   for (const edge of edgeSet.toArray()) {

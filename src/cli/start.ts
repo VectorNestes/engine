@@ -1,18 +1,3 @@
-/**
- * start.ts — CLI orchestrator
- *
- * Sequence:
- *   0. Docker + Neo4j preflight  (skipped with --mock)
- *   1. Spawn Express backend     (ts-node or node dist/server/server.js)
- *   2. Poll /health until ready  (60s timeout)
- *   3. POST /api/ingest          (load cluster data)
- *   4. Ensure UI deps installed  (npm install inside ui/ if needed)
- *   5. Spawn Vite frontend       (npm run dev inside ui/)
- *   6. Wait for Vite             (poll localhost:5173, 30s timeout)
- *   7. Open browser
- *   8. Park — Ctrl+C kills both children cleanly
- */
-
 import { exec as execCb, spawn, type ChildProcess } from 'child_process';
 import * as fs   from 'fs';
 import * as path from 'path';
@@ -23,20 +8,14 @@ import { runPreflight } from './docker';
 
 const exec = util.promisify(execCb);
 
-// ─── Resolved paths ───────────────────────────────────────────────────────────
-// __dirname is dist/cli/ at runtime (both ts-node and compiled).
-// ROOT is always the package root (two levels up from dist/cli/).
 const ROOT         = path.resolve(__dirname, '..', '..');
 const UI_DIR       = path.join(ROOT, 'ui');
 const BACKEND_URL  = 'http://localhost:3001';
 const FRONTEND_URL = 'http://localhost:5173';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 const log  = (msg: string) => console.log(`  ${msg}`);
 const warn = (msg: string) => console.log(`  ⚠  ${msg}`);
 
-/** Poll a URL until it responds < 400. Rejects after timeoutMs. */
 function waitFor(url: string, timeoutMs = 30_000): Promise<void> {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + timeoutMs;
@@ -60,7 +39,6 @@ function waitFor(url: string, timeoutMs = 30_000): Promise<void> {
   });
 }
 
-/** POST /api/ingest — load cluster data into Neo4j */
 async function ingest(source: 'mock' | 'live'): Promise<void> {
   const res = await fetch(`${BACKEND_URL}/api/ingest`, {
     method:  'POST',
@@ -73,7 +51,6 @@ async function ingest(source: 'mock' | 'live'): Promise<void> {
   }
 }
 
-/** Open the system default browser cross-platform */
 function openBrowser(url: string): void {
   const [cmd, args] =
     process.platform === 'win32'  ? ['cmd',      ['/c', `start ${url}`]] :
@@ -83,11 +60,6 @@ function openBrowser(url: string): void {
   spawn(cmd, args, { shell: false, detached: true, stdio: 'ignore' }).unref();
 }
 
-/**
- * Ensure the ui/ directory has its node_modules installed.
- * Runs `npm install --omit=dev` inside ui/ if node_modules is absent.
- * This handles the `npx k8s-av` case where ui/node_modules is not present.
- */
 async function ensureUiDeps(): Promise<void> {
   const nmDir = path.join(UI_DIR, 'node_modules');
   if (fs.existsSync(nmDir)) return;
@@ -105,8 +77,6 @@ async function ensureUiDeps(): Promise<void> {
   }
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-
 export interface StartOptions {
   skipBrowser: boolean;
   source:      'mock' | 'live';
@@ -118,7 +88,6 @@ export async function runStart(opts: StartOptions): Promise<void> {
   console.log('  ' + (opts.source === 'mock' ? 'Demo mode (mock data)' : 'Live cluster mode'));
   console.log('═'.repeat(62));
 
-  // ── 0. Docker preflight (skipped in mock mode) ────────────────────────────
   if (opts.source === 'mock') {
     console.log('\n  ℹ  Mock mode — skipping Docker & Neo4j preflight.');
   } else {
@@ -128,10 +97,8 @@ export async function runStart(opts: StartOptions): Promise<void> {
 
   console.log();
 
-  // ── 1. Spawn backend ───────────────────────────────────────────────────────
   log('✔ Starting backend...');
 
-  // Use compiled JS if available (npm package context), fall back to ts-node
   const distServer = path.join(ROOT, 'dist', 'server', 'server.js');
   const [backendCmd, backendArgs] = fs.existsSync(distServer)
     ? ['node',  [distServer]]
@@ -162,7 +129,6 @@ export async function runStart(opts: StartOptions): Promise<void> {
     }
   });
 
-  // ── 2. Wait for backend ────────────────────────────────────────────────────
   log('⏳ Waiting for backend...');
   try {
     await waitFor(`${BACKEND_URL}/health`, 60_000);
@@ -177,7 +143,6 @@ export async function runStart(opts: StartOptions): Promise<void> {
   }
   log('✔ Backend ready');
 
-  // ── 3. Ingest data ────────────────────────────────────────────────────────
   log(`✔ Loading cluster data (source: ${opts.source})...`);
   try {
     await ingest(opts.source);
@@ -187,7 +152,6 @@ export async function runStart(opts: StartOptions): Promise<void> {
     warn('   UI will start in empty state — check Neo4j connection.');
   }
 
-  // ── 4. Ensure UI dependencies ─────────────────────────────────────────────
   try {
     await ensureUiDeps();
   } catch (err) {
@@ -196,7 +160,6 @@ export async function runStart(opts: StartOptions): Promise<void> {
     process.exit(1);
   }
 
-  // ── 5. Spawn frontend ─────────────────────────────────────────────────────
   log('✔ Starting UI...');
 
   const frontend: ChildProcess = spawn('npm', ['run', 'dev'], {
@@ -215,20 +178,17 @@ export async function runStart(opts: StartOptions): Promise<void> {
     if (line) process.stderr.write(`     [ui] ${line}\n`);
   });
 
-  // ── 6. Wait for Vite ──────────────────────────────────────────────────────
   try {
     await waitFor(FRONTEND_URL, 45_000);
   } catch {
     warn('Vite did not respond in time — opening browser anyway.');
   }
 
-  // ── 7. Open browser ───────────────────────────────────────────────────────
   if (!opts.skipBrowser) {
     log('✔ Opening browser...');
     openBrowser(FRONTEND_URL);
   }
 
-  // ── 8. Summary ────────────────────────────────────────────────────────────
   console.log('\n  ' + '─'.repeat(58));
   console.log('  ✔ System ready');
   console.log(`     Backend  →  ${BACKEND_URL}`);
@@ -236,7 +196,6 @@ export async function runStart(opts: StartOptions): Promise<void> {
   console.log('  ' + '─'.repeat(58));
   console.log('\n  Press Ctrl+C to stop.\n');
 
-  // ── Shutdown handler ──────────────────────────────────────────────────────
   const shutdown = (): void => {
     log('Shutting down...');
     if (!backendExited) backend.kill('SIGTERM');
@@ -247,6 +206,5 @@ export async function runStart(opts: StartOptions): Promise<void> {
   process.on('SIGINT',  shutdown);
   process.on('SIGTERM', shutdown);
 
-  // Park indefinitely until Ctrl+C
   await new Promise(() => {});
 }

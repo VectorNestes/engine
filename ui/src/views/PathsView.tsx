@@ -38,7 +38,7 @@ export function PathsView() {
       }}>
         {/* Header */}
         <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid #1F1F1F', flexShrink: 0 }}>
-          <div style={{ fontSize: 11, color: '#EAEAEA', fontWeight: 500, marginBottom: 6 }}>Attack Paths</div>
+          <div style={{ fontSize: 14, color: '#EAEAEA', fontWeight: 500, marginBottom: 6 }}>Attack Paths</div>
           {pathsSummary && (
             <div style={{ display: 'flex', gap: 16 }}>
               <Stat label="Total"    value={String(pathsSummary.total)} />
@@ -50,7 +50,7 @@ export function PathsView() {
         </div>
 
         {/* List */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 900, width: '100%', alignSelf: 'center', boxSizing: 'border-box' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 0, maxWidth: 900, width: '100%', alignSelf: 'center', boxSizing: 'border-box' }}>
 
           {loading['paths'] && Array.from({ length: 3 }).map((_, i) => (
             <div key={i} style={{ height: 180, borderRadius: 16, background: '#121212', animation: 'pulse 1.5s ease infinite' }} />
@@ -74,21 +74,32 @@ export function PathsView() {
             const riskLabel = isCrit ? 'CRITICAL' : isHigh ? 'HIGH' : 'MEDIUM';
 
             return (
-              <button
-                key={idx}
-                onClick={() => selectPath(active ? null : idx)}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: 0, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
-              >
-                <PathCard
-                  index={idx}
-                  nodes={path.nodes}
-                  description={path.description}
-                  riskScore={path.riskScore}
-                  riskColor={riskColor}
-                  riskLabel={riskLabel}
-                  active={active}
-                />
-              </button>
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column' }}>
+                <button
+                  onClick={() => selectPath(active ? null : idx)}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: 0, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                >
+                  <PathCard
+                    index={idx}
+                    nodes={path.nodes}
+                    description={path.description}
+                    riskScore={path.riskScore}
+                    riskColor={riskColor}
+                    riskLabel={riskLabel}
+                    active={active}
+                  />
+                </button>
+                {idx < paths.length - 1 && (
+                  <div style={{ position: 'relative', height: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{
+                      width: '60%',
+                      height: 1,
+                      background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent)',
+                      boxShadow: '0 0 6px 1px rgba(255,255,255,0.08)',
+                    }} />
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -272,7 +283,7 @@ function PathCard({ index, nodes, description, riskScore, riskColor, riskLabel, 
 
 function Stat({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
-    <span style={{ fontSize: 11, color: '#555555' }}>
+    <span style={{ fontSize: 13, color: '#555555' }}>
       {label}{' '}
       <span style={{ fontFamily: 'monospace', color: danger ? '#FF3B3B' : '#888888', fontWeight: 500 }}>{value}</span>
     </span>

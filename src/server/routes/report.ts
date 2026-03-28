@@ -10,21 +10,6 @@ const ReportQuerySchema = z.object({
   format: z.enum(['text', 'json']).default('json'),
 });
 
-/**
- * GET /api/report
- *
- * Generates a full attack analysis report by collecting:
- *   • All BFS attack paths
- *   • Dijkstra shortest paths for every entry→crown pair
- *   • Blast radius per entry point
- *   • Privilege escalation cycles
- *   • Critical node (betweenness centrality)
- *
- * Query params:
- *   format — 'json' (default) | 'text'
- *
- * Uses the SAME generator + formatter as the CLI `report` command.
- */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   const parsed = ReportQuerySchema.safeParse(req.query);
   if (!parsed.success) {

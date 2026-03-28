@@ -1,17 +1,3 @@
-#!/usr/bin/env node
-/**
- * Kubernetes Attack Path Visualizer — CLI Entry Point
- *
- * Commands:
- *   scan    — fetch + transform + enrich → write cluster-graph.json  (no Neo4j)
- *   ingest  — full pipeline: scan → load Neo4j → re-project GDS
- *   report  — generate + print attack report from Neo4j
- *
- * Usage:
- *   npx ts-node src/cli/index.ts scan   --mock
- *   npx ts-node src/cli/index.ts ingest --source mock
- *   npx ts-node src/cli/index.ts report --format text
- */
 
 import 'dotenv/config';
 
@@ -38,9 +24,6 @@ program
   )
   .version('1.0.0', '-v, --version');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// scan — local pipeline only (no Neo4j)
-// ─────────────────────────────────────────────────────────────────────────────
 
 program
   .command('scan')
@@ -59,10 +42,7 @@ program
     }
   });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ingest — full pipeline: scan → Neo4j → GDS
-// Reuses same services as POST /api/ingest
-// ─────────────────────────────────────────────────────────────────────────────
+
 
 program
   .command('ingest')
@@ -86,7 +66,6 @@ program
       console.log('\n  Connecting to Neo4j...');
       await verifyConnection();
 
-      // ── Step 1: ingestCluster (Teammate 1) ───────────────────────────────
       console.log('\n  [1/3] Ingesting cluster data...');
       const ingestResult = await ingestCluster({ source, skipCve: opts.skipCve });
       console.log(`  ✔ Graph JSON written: ${ingestResult.nodes} nodes, ${ingestResult.edges} edges`);

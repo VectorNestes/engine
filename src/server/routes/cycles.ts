@@ -5,16 +5,6 @@ import { detectCycles }      from '../../db/queries';
 
 const router = Router();
 
-/**
- * GET /api/cycles
- *
- * Detects privilege escalation cycles — RBAC loops where a service account
- * can reach a role that execs back into its own pod.
- *
- * Query params:
- *   maxDepth — max cycle length to search  (default 8, max 20)
- *   limit    — max cycles to return        (default 20, max 100)
- */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   const parsed = CyclesQuerySchema.safeParse(req.query);
   if (!parsed.success) {
