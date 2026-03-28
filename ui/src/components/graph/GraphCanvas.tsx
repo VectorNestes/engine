@@ -20,7 +20,7 @@ const nodeTypes = { k8s: CustomNode };
 function applyLayout(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'LR', nodesep: 60, ranksep: 120 });
+  g.setGraph({ rankdir: 'LR', nodesep: 60, ranksep: 130 });
   nodes.forEach((n) => g.setNode(n.id, { width: NODE_W, height: NODE_H }));
   edges.forEach((e) => g.setEdge(e.source, e.target));
   dagre.layout(g);
@@ -47,16 +47,16 @@ function buildFlowGraph(
     type: 'k8s',
     position: { x: 0, y: 0 },
     data: {
-      label:       n.name || n.id,
-      nodeType:    n.type,
-      riskScore:   n.riskScore,
+      label:        n.name || n.id,
+      nodeType:     n.type,
+      riskScore:    n.riskScore,
       isEntryPoint: n.isEntryPoint,
       isCrownJewel: n.isCrownJewel,
-      hasCve:      (n.cve?.length ?? 0) > 0,
-      highlighted: highlightedNodeIds.has(n.id),
-      dimmed:      hasHighlight && !highlightedNodeIds.has(n.id) && n.id !== selectedNodeId,
-      isCritical:  n.id === criticalNodeId,
-      vuln:        vulnMap.get(n.id) ?? null,
+      hasCve:       (n.cve?.length ?? 0) > 0,
+      highlighted:  highlightedNodeIds.has(n.id),
+      dimmed:       hasHighlight && !highlightedNodeIds.has(n.id) && n.id !== selectedNodeId,
+      isCritical:   n.id === criticalNodeId,
+      vuln:         vulnMap.get(n.id) ?? null,
     } satisfies K8sNodeData,
   }));
 
@@ -70,14 +70,17 @@ function buildFlowGraph(
       label: e.type,
       animated: isHighlighted,
       style: {
-        stroke: isHighlighted ? '#7c3aed' : '#2a2a3e',
+        stroke: isHighlighted ? '#FF6A00' : '#2a2a2a',
         strokeWidth: isHighlighted ? 2 : 1,
-        opacity: hasHighlight && !isHighlighted ? 0.15 : 0.7,
-        strokeDasharray: isHighlighted ? '5 3' : undefined,
+        opacity: hasHighlight && !isHighlighted ? 0.1 : 0.6,
+        strokeDasharray: isHighlighted ? '6 3' : undefined,
       },
-      markerEnd: { type: MarkerType.ArrowClosed, color: isHighlighted ? '#7c3aed' : '#2a2a3e' },
-      labelStyle: { fill: '#64748b', fontSize: 9 },
-      labelBgStyle: { fill: '#0a0a0f' },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        color: isHighlighted ? '#FF6A00' : '#2a2a2a',
+      },
+      labelStyle: { fill: '#555555', fontSize: 9 },
+      labelBgStyle: { fill: '#0B0B0B' },
     };
   });
 
@@ -91,7 +94,11 @@ interface Props {
   criticalNodeId?: string | null;
 }
 
-export function GraphCanvas({ highlightedNodeIds = new Set(), highlightedEdgeKeys = new Set(), criticalNodeId = null }: Props) {
+export function GraphCanvas({
+  highlightedNodeIds = new Set(),
+  highlightedEdgeKeys = new Set(),
+  criticalNodeId = null,
+}: Props) {
   const { graphNodes, graphEdges, selectedNodeId, vulnerabilities, selectNode } = useAppStore();
 
   const vulnMap = useMemo(() => {
@@ -108,13 +115,12 @@ export function GraphCanvas({ highlightedNodeIds = new Set(), highlightedEdgeKey
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
-  // Sync when upstream data changes
   const syncedNodes = useMemo(() => {
     return initialNodes.map((n) => {
       const existing = nodes.find((en) => en.id === n.id);
       return existing ? { ...n, position: existing.position } : n;
     });
-  }, [initialNodes]);  // eslint-disable-line
+  }, [initialNodes]); // eslint-disable-line
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     selectNode(node.id);
@@ -126,17 +132,19 @@ export function GraphCanvas({ highlightedNodeIds = new Set(), highlightedEdgeKey
 
   if (graphNodes.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-[#64748b] text-sm">No cluster data loaded.</div>
-          <div className="text-[#3a3a4e] text-xs mt-1">Run: <span className="font-mono">npm run ingest</span></div>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 13, color: '#555555' }}>No cluster data loaded.</div>
+          <div style={{ fontSize: 11, color: '#333333', marginTop: 6 }}>
+            Run: <span style={{ fontFamily: 'monospace', color: '#FF6A00' }}>npm run ingest</span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 min-h-0">
+    <div style={{ flex: 1, minHeight: 0, borderRadius: 12, overflow: 'hidden' }}>
       <ReactFlow
         nodes={syncedNodes}
         edges={initialEdges}
@@ -146,19 +154,19 @@ export function GraphCanvas({ highlightedNodeIds = new Set(), highlightedEdgeKey
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
-        minZoom={0.1}
+        fitViewOptions={{ padding: 0.12 }}
+        minZoom={0.08}
         maxZoom={2}
         attributionPosition={undefined}
       >
-        <Background variant={BackgroundVariant.Dots} color="#1e1e2e" gap={24} size={1} />
+        <Background variant={BackgroundVariant.Dots} color="#1F1F1F" gap={28} size={1} />
         <Controls showInteractive={false} />
         <MiniMap
           nodeColor={(n) => {
             const d = n.data as K8sNodeData;
-            return d.riskScore >= 8 ? '#ef4444' : d.riskScore >= 5 ? '#f59e0b' : '#3b82f6';
+            return d.riskScore >= 8 ? '#FF3B3B' : d.riskScore >= 5 ? '#FFA726' : '#3B82F6';
           }}
-          maskColor="#0a0a0f99"
+          maskColor="#0B0B0BCC"
         />
       </ReactFlow>
     </div>

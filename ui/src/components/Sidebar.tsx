@@ -3,39 +3,71 @@ import { useAppStore } from '../store/useAppStore';
 type View = 'overview' | 'paths' | 'vulnerabilities' | 'critical' | 'report';
 
 const NAV: { id: View; label: string; icon: string }[] = [
-  { id: 'overview',        label: 'Overview',       icon: '⬡' },
-  { id: 'paths',           label: 'Attack Paths',   icon: '⤳' },
-  { id: 'vulnerabilities', label: 'Vulnerabilities',icon: '⚠' },
-  { id: 'critical',        label: 'Critical Node',  icon: '◉' },
-  { id: 'report',          label: 'Report',         icon: '≡' },
+  { id: 'overview',        label: 'Overview',        icon: '⬡' },
+  { id: 'paths',           label: 'Attack Paths',    icon: '⤳' },
+  { id: 'vulnerabilities', label: 'Vulnerabilities', icon: '⚠' },
+  { id: 'critical',        label: 'Critical Node',   icon: '◉' },
+  { id: 'report',          label: 'Report',          icon: '≡' },
 ];
 
 export function Sidebar() {
   const { activeView, setView, graphMeta, vulnSummary } = useAppStore();
 
   return (
-    <aside className="w-[168px] shrink-0 flex flex-col border-r border-[#1e1e2e] bg-[#0d0d14]">
+    <aside
+      style={{ width: 192, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#0B0B0B', borderRight: '1px solid #1F1F1F' }}
+    >
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-[#1e1e2e]">
-        <div className="text-[11px] font-mono text-[#7c3aed] tracking-widest uppercase">K8s-AV</div>
-        <div className="text-[10px] text-[#64748b] mt-0.5">Attack Path Visualizer</div>
+      <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid #1F1F1F' }}>
+        <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#FF6A00', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>
+          K8s-AV
+        </div>
+        <div style={{ fontSize: 10, color: '#888888', marginTop: 3 }}>Attack Path Visualizer</div>
+      </div>
+
+      {/* Section label */}
+      <div style={{ padding: '16px 16px 8px', fontSize: 9, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
+        Navigation
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-3">
+      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
         {NAV.map(({ id, label, icon }) => {
           const active = activeView === id;
           return (
             <button
               key={id}
               onClick={() => setView(id)}
-              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-[13px] transition-colors
-                ${active
-                  ? 'border-l-2 border-[#7c3aed] text-[#e2e8f0] bg-[#7c3aed]/5'
-                  : 'border-l-2 border-transparent text-[#64748b] hover:text-[#94a3b8] hover:bg-white/[0.02]'
-                }`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '9px 10px',
+                borderRadius: 8,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 12,
+                textAlign: 'left',
+                transition: 'all 0.15s',
+                background: active ? '#FF6A0012' : 'transparent',
+                color: active ? '#FF6A00' : '#888888',
+                fontWeight: active ? 500 : 400,
+                boxShadow: active ? 'inset 2px 0 0 #FF6A00' : 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  (e.currentTarget as HTMLElement).style.background = '#FFFFFF08';
+                  (e.currentTarget as HTMLElement).style.color = '#EAEAEA';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  (e.currentTarget as HTMLElement).style.background = 'transparent';
+                  (e.currentTarget as HTMLElement).style.color = '#888888';
+                }
+              }}
             >
-              <span className="text-[15px] w-4 text-center shrink-0">{icon}</span>
+              <span style={{ fontSize: 14, width: 16, textAlign: 'center', flexShrink: 0 }}>{icon}</span>
               <span>{label}</span>
             </button>
           );
@@ -43,7 +75,10 @@ export function Sidebar() {
       </nav>
 
       {/* Stats footer */}
-      <div className="px-4 py-3 border-t border-[#1e1e2e] space-y-1.5">
+      <div style={{ padding: '12px 16px', borderTop: '1px solid #1F1F1F', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: 9, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 2 }}>
+          Cluster Stats
+        </div>
         {graphMeta && (
           <>
             <StatRow label="Nodes"  value={graphMeta.totalNodes} />
@@ -64,11 +99,9 @@ export function Sidebar() {
 
 function StatRow({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-[11px] text-[#64748b]">{label}</span>
-      <span className={`text-[11px] font-mono ${danger ? 'text-red-400' : 'text-[#94a3b8]'}`}>
-        {value}
-      </span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <span style={{ fontSize: 11, color: '#555555' }}>{label}</span>
+      <span style={{ fontSize: 11, fontFamily: 'monospace', color: danger ? '#FF3B3B' : '#888888' }}>{value}</span>
     </div>
   );
 }

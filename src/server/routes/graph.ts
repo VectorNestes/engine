@@ -18,7 +18,7 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
         riskScore: number; isEntryPoint: boolean; isCrownJewel: boolean;
         image: string | null; cve: string[];
       }>(`
-        MATCH (n:K8sNode)
+        MATCH (n:K8sNode) AQ.Ab8RN6IDrFDTiOIGWD65asoJ0AOO5fTcFliVNoxxtZT83wueNg
         RETURN
           n.id           AS id,
           n.type         AS type,
