@@ -16,7 +16,8 @@
 import 'dotenv/config';
 
 import { Command } from 'commander';
-import { runScan }  from './scan';
+import { runScan }   from './scan';
+import { runStart }  from './start';
 
 import { ingestCluster }  from '../services/ingestion.service';
 import { loadGraph }      from '../db/loader';
@@ -130,6 +131,27 @@ program
       process.exit(0);
     } catch (err) {
       console.error(`\n❌  Report failed: ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(1);
+    }
+  });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// start — full system orchestrator: backend + ingest + UI + browser
+// ─────────────────────────────────────────────────────────────────────────────
+
+program
+  .command('start')
+  .description('Start backend, load mock data, open the UI in your browser')
+  .option('--source <source>',  'Data source: mock | live', 'mock')
+  .option('--no-browser',       'Skip opening the browser automatically')
+  .action(async (opts: { source: string; browser: boolean }) => {
+    try {
+      await runStart({
+        source:      opts.source === 'live' ? 'live' : 'mock',
+        skipBrowser: !opts.browser,
+      });
+    } catch (err) {
+      console.error(`\n❌  Start failed: ${err instanceof Error ? err.message : String(err)}\n`);
       process.exit(1);
     }
   });
