@@ -65,7 +65,7 @@ async function boot(): Promise<void> {
   try {
     await ensureProjection(false);
   } catch (err) {
-    // GDS projection failure is non-fatal on boot — the graph may not be
+    // GDS projection failure is non-fatal on boot — the graph may not be 
     // loaded yet (first run). Routes will re-project after /api/ingest.
     console.warn(`  ⚠  GDS projection skipped: ${err instanceof Error ? err.message : String(err)}`);
     console.warn('     Call POST /api/ingest to load graph data first.');
