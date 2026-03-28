@@ -8,27 +8,41 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #0a0a0f;
-  color: #e2e8f0;
+  background: #0B0B0B;
+  color: #EAEAEA;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 14px;
 }
 
 /* React Flow */
-.react-flow__attribution { display: none !important; }
-.react-flow__background  { background: #0a0a0f; }
-.react-flow__minimap     { background: #111118 !important; border: 1px solid #1e1e2e; border-radius: 6px; }
-.react-flow__controls    { background: #111118 !important; border: 1px solid #1e1e2e; border-radius: 6px; }
+.react-flow__attribution  { display: none !important; }
+.react-flow__background   { background: #0B0B0B; }
+.react-flow__minimap      { background: #121212 !important; border: 1px solid #1F1F1F; border-radius: 8px; }
+.react-flow__controls     { background: #121212 !important; border: 1px solid #1F1F1F; border-radius: 8px; }
 .react-flow__controls-button {
-  background: #111118 !important;
-  border-bottom: 1px solid #1e1e2e !important;
-  color: #64748b !important;
-  fill: #64748b !important;
+  background: #121212 !important;
+  border-bottom: 1px solid #1F1F1F !important;
+  color: #888888 !important;
+  fill: #888888 !important;
 }
-.react-flow__controls-button:hover { background: #1e1e2e !important; }
+.react-flow__controls-button:hover {
+  background: #1F1F1F !important;
+  fill: #EAEAEA !important;
+}
 
 /* Scrollbar */
-::-webkit-scrollbar         { width: 5px; height: 5px; }
-::-webkit-scrollbar-track   { background: #111118; }
-::-webkit-scrollbar-thumb   { background: #1e1e2e; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #2a2a3e; }
+::-webkit-scrollbar         { width: 4px; height: 4px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: #1F1F1F; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #2a2a2a; }
+
+/* Pulse animation for skeleton loaders */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* Orange glow utility */
+.glow-orange {
+  box-shadow: 0 0 0 1px #FF6A0040, 0 0 12px #FF6A0020;
+}

@@ -4,22 +4,35 @@ interface Props {
 }
 
 export function RiskBadge({ score, size = 'md' }: Props) {
-  const color =
-    score >= 8 ? 'bg-red-900/60 text-red-300 border-red-800'
-    : score >= 5 ? 'bg-amber-900/60 text-amber-300 border-amber-800'
-    : 'bg-green-900/60 text-green-300 border-green-800';
+  const isCritical = score >= 8;
+  const isHigh     = score >= 5;
 
-  const label =
-    score >= 8 ? 'CRITICAL'
-    : score >= 5 ? 'HIGH'
-    : 'MEDIUM';
+  const color  = isCritical ? '#FF3B3B' : isHigh ? '#FFA726' : '#4CAF50';
+  const bg     = isCritical ? '#FF3B3B15' : isHigh ? '#FFA72615' : '#4CAF5015';
+  const border = isCritical ? '#FF3B3B35' : isHigh ? '#FFA72635' : '#4CAF5035';
+  const label  = isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'MEDIUM';
 
-  const px = size === 'sm' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs';
+  const pad   = size === 'sm' ? '1px 6px' : '3px 10px';
+  const fsize = size === 'sm' ? 9 : 10;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 font-mono border rounded ${px} ${color}`}>
-      <span>{score.toFixed(1)}</span>
-      <span className="opacity-70">{label}</span>
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        fontSize: fsize,
+        fontFamily: 'monospace',
+        padding: pad,
+        background: bg,
+        color,
+        border: `1px solid ${border}`,
+        borderRadius: 4,
+        flexShrink: 0,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {score.toFixed(1)} <span style={{ opacity: 0.75 }}>{label}</span>
     </span>
   );
 }
