@@ -47,7 +47,7 @@ export async function checkDockerInstalled(): Promise<boolean> {
 
 export async function checkDockerRunning(): Promise<boolean> {
   try {
-    await exec('docker ps');
+    await exec('docker ps', { timeout: 8_000 });
     ok('Docker daemon is running');
     return true;
   } catch {
