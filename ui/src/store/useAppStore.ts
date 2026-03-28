@@ -9,7 +9,6 @@ import {
 type View = 'overview' | 'paths' | 'vulnerabilities' | 'critical' | 'report';
 
 interface AppState {
-  // ── Data ──────────────────────────────────────────────────────────────────
   graphNodes:       GraphNode[];
   graphEdges:       GraphEdge[];
   graphMeta:        { totalNodes: number; totalEdges: number; entryPoints: number; crownJewels: number } | null;
@@ -21,14 +20,12 @@ interface AppState {
   simulateResult:   SimulateResponse | null;
   reportData:       ReportResponse | null;
 
-  // ── UI state ──────────────────────────────────────────────────────────────
   activeView:       View;
   selectedNodeId:   string | null;
   selectedPathIdx:  number | null;
   loading:          Record<string, boolean>;
   errors:           Record<string, string | null>;
 
-  // ── Actions ───────────────────────────────────────────────────────────────
   setView:          (v: View) => void;
   selectNode:       (id: string | null) => void;
   selectPath:       (idx: number | null) => void;
@@ -50,7 +47,6 @@ function setError(set: (fn: (s: AppState) => Partial<AppState>) => void, key: st
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  // ── Initial state ─────────────────────────────────────────────────────────
   graphNodes:      [],
   graphEdges:      [],
   graphMeta:       null,
@@ -68,10 +64,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   loading:         {},
   errors:          {},
 
-  // ── UI actions ─────────────────────────────────────────────────────────────
   setView: (v) => {
     set({ activeView: v, selectedPathIdx: null });
-    // Lazy-fetch on first activation
     const s = get();
     if (v === 'paths'          && s.paths.length === 0)        s.fetchPaths();
     if (v === 'vulnerabilities' && s.vulnerabilities.length === 0) s.fetchVulnerabilities();
@@ -83,7 +77,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectPath:    (idx) => set({ selectedPathIdx: idx }),
   clearSimulate: ()    => set({ simulateResult: null }),
 
-  // ── Fetch actions ──────────────────────────────────────────────────────────
   fetchGraph: async () => {
     setLoading(set, 'graph', true);
     setError(set, 'graph', null);
