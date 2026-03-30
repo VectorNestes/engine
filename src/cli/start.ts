@@ -14,7 +14,7 @@ const BACKEND_URL  = 'http://localhost:3001';
 const FRONTEND_URL = 'http://localhost:5173';
 
 const log  = (msg: string) => console.log(`  ${msg}`);
-const warn = (msg: string) => console.log(`  ⚠  ${msg}`);
+const warn = (msg: string) => console.log(`  ! ${msg}`);
 
 function waitFor(url: string, timeoutMs = 30_000): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -62,12 +62,19 @@ function openBrowser(url: string): void {
 
 async function ensureUiDeps(): Promise<void> {
   const nmDir = path.join(UI_DIR, 'node_modules');
-  if (fs.existsSync(nmDir)) return;
+  const requiredPackages = [
+    path.join(nmDir, 'vite', 'package.json'),
+    path.join(nmDir, '@vitejs', 'plugin-react', 'package.json'),
+  ];
+  const hasUiDeps = fs.existsSync(nmDir) && requiredPackages.every((pkg) => fs.existsSync(pkg));
+  if (hasUiDeps) return;
 
-  log('📦 Installing UI dependencies (first run)...');
+  log(fs.existsSync(nmDir)
+    ? 'Repairing incomplete UI dependencies...'
+    : 'Installing UI dependencies (first run)...');
   try {
-    await exec('npm install --omit=dev', { cwd: UI_DIR });
-    log('✔ UI dependencies installed');
+    await exec('npm install', { cwd: UI_DIR });
+    log('UI dependencies installed');
   } catch (err) {
     throw new Error(
       `Failed to install UI deps in ${UI_DIR}:\n` +
@@ -83,13 +90,13 @@ export interface StartOptions {
 }
 
 export async function runStart(opts: StartOptions): Promise<void> {
-  console.log('\n' + '═'.repeat(62));
-  console.log('  🔐 Kubernetes Attack Path Visualizer');
+  console.log('\n' + '='.repeat(62));
+  console.log('  Kubernetes Attack Path Visualizer');
   console.log('  ' + (opts.source === 'mock' ? 'Demo mode (mock data)' : 'Live cluster mode'));
-  console.log('═'.repeat(62));
+  console.log('='.repeat(62));
 
   if (opts.source === 'mock') {
-    console.log('\n  ℹ  Mock mode — skipping Docker & Neo4j preflight.');
+    console.log('\n  Info: Mock mode - skipping Docker and Neo4j preflight.');
   } else {
     const preflight = await runPreflight();
     if (!preflight.ok) process.exit(1);
@@ -97,7 +104,7 @@ export async function runStart(opts: StartOptions): Promise<void> {
 
   console.log();
 
-  log('✔ Starting backend...');
+  log('Starting backend...');
 
   const distServer = path.join(ROOT, 'dist', 'server', 'server.js');
   const [backendCmd, backendArgs] = fs.existsSync(distServer)
@@ -124,16 +131,16 @@ export async function runStart(opts: StartOptions): Promise<void> {
   backend.once('exit', (code) => {
     backendExited = true;
     if (code !== 0 && code !== null) {
-      console.error(`\n  ❌ Backend exited with code ${code}`);
+      console.error(`\n  ERROR: Backend exited with code ${code}`);
       process.exit(1);
     }
   });
 
-  log('⏳ Waiting for backend...');
+  log('Waiting for backend...');
   try {
     await waitFor(`${BACKEND_URL}/health`, 60_000);
   } catch {
-    console.error('\n  ❌ Backend did not start within 60s.');
+    console.error('\n  ERROR: Backend did not start within 60s.');
     if (opts.source !== 'mock') {
       console.error('     Ensure Neo4j is running:');
       console.error('       cd docker && docker compose up -d');
@@ -141,26 +148,26 @@ export async function runStart(opts: StartOptions): Promise<void> {
     backend.kill();
     process.exit(1);
   }
-  log('✔ Backend ready');
+  log('Backend ready');
 
-  log(`✔ Loading cluster data (source: ${opts.source})...`);
+  log(`Loading cluster data (source: ${opts.source})...`);
   try {
     await ingest(opts.source);
-    log('✔ Data loaded');
+    log('Data loaded');
   } catch (err) {
     warn(`Ingest warning: ${(err as Error).message}`);
-    warn('   UI will start in empty state — check Neo4j connection.');
+    warn('UI will start in empty state - check Neo4j connection.');
   }
 
   try {
     await ensureUiDeps();
   } catch (err) {
-    console.error(`\n  ❌ ${(err as Error).message}`);
+    console.error(`\n  ERROR: ${(err as Error).message}`);
     backend.kill();
     process.exit(1);
   }
 
-  log('✔ Starting UI...');
+  log('Starting UI...');
 
   const frontend: ChildProcess = spawn('npm', ['run', 'dev'], {
     cwd:   UI_DIR,
@@ -181,19 +188,19 @@ export async function runStart(opts: StartOptions): Promise<void> {
   try {
     await waitFor(FRONTEND_URL, 45_000);
   } catch {
-    warn('Vite did not respond in time — opening browser anyway.');
+    warn('Vite did not respond in time - opening browser anyway.');
   }
 
   if (!opts.skipBrowser) {
-    log('✔ Opening browser...');
+    log('Opening browser...');
     openBrowser(FRONTEND_URL);
   }
 
-  console.log('\n  ' + '─'.repeat(58));
-  console.log('  ✔ System ready');
-  console.log(`     Backend  →  ${BACKEND_URL}`);
-  console.log(`     UI       →  ${FRONTEND_URL}`);
-  console.log('  ' + '─'.repeat(58));
+  console.log('\n  ' + '-'.repeat(58));
+  console.log('  System ready');
+  console.log(`     Backend  ->  ${BACKEND_URL}`);
+  console.log(`     UI       ->  ${FRONTEND_URL}`);
+  console.log('  ' + '-'.repeat(58));
   console.log('\n  Press Ctrl+C to stop.\n');
 
   const shutdown = (): void => {
