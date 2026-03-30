@@ -13,9 +13,23 @@ interface AppState {
   graphEdges:       GraphEdge[];
   graphMeta:        { totalNodes: number; totalEdges: number; entryPoints: number; crownJewels: number } | null;
   vulnerabilities:  Vulnerability[];
-  vulnSummary:      { total: number; critical: number; high: number; medium: number } | null;
+  vulnSummary:      {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    entryPoints: number;
+    crownJewels: number;
+    withCves: number;
+  } | null;
   paths:            AttackPath[];
-  pathsSummary:     { total: number; critical: number } | null;
+  pathsSummary:     {
+    total: number;
+    critical: number;
+    uniqueEntryPoints: number;
+    uniqueCrownJewels: number;
+    avgHops: number;
+  } | null;
   criticalData:     CriticalResponse | null;
   simulateResult:   SimulateResponse | null;
   reportData:       ReportResponse | null;

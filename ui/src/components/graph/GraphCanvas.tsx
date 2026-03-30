@@ -25,6 +25,9 @@ function applyLayout(nodes: Node[], edges: Edge[]): Node[] {
   dagre.layout(g);
   return nodes.map((n) => {
     const pos = g.node(n.id);
+    if (!pos) {
+      return n;
+    }
     return { ...n, position: { x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2 } };
   });
 }
@@ -110,14 +113,14 @@ export function GraphCanvas({
   );
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+  const [, , onEdgesChange] = useEdgesState(initialEdges);
 
   const syncedNodes = useMemo(() => {
     return initialNodes.map((n) => {
       const existing = nodes.find((en) => en.id === n.id);
       return existing ? { ...n, position: existing.position } : n;
     });
-  }, [initialNodes]); // eslint-disable-line
+  }, [initialNodes, nodes]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     selectNode(node.id);
