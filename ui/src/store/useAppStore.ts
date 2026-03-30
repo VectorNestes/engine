@@ -1,4 +1,5 @@
-import { create } from 'zustand';
+import { useSyncExternalStore } from 'react';
+import { createStore } from 'zustand/vanilla';
 import {
   api,
   GraphNode, GraphEdge,
@@ -53,14 +54,20 @@ interface AppState {
   simulate:             (nodeId: string) => Promise<void>;
 }
 
-function setLoading(set: (fn: (s: AppState) => Partial<AppState>) => void, key: string, val: boolean) {
+type StoreSet = (
+  partial: Partial<AppState> | ((state: AppState) => Partial<AppState>),
+) => void;
+
+const identity = <T,>(value: T) => value;
+
+function setLoading(set: StoreSet, key: string, val: boolean) {
   set((s) => ({ loading: { ...s.loading, [key]: val } }));
 }
-function setError(set: (fn: (s: AppState) => Partial<AppState>) => void, key: string, msg: string | null) {
+function setError(set: StoreSet, key: string, msg: string | null) {
   set((s) => ({ errors: { ...s.errors, [key]: msg } }));
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+const appStore = createStore<AppState>((set, get) => ({
   graphNodes:      [],
   graphEdges:      [],
   graphMeta:       null,
@@ -173,3 +180,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 }));
+
+export function useAppStore(): AppState;
+export function useAppStore<T>(selector: (state: AppState) => T): T;
+export function useAppStore<T>(selector?: (state: AppState) => T): T | AppState {
+  const select = selector ?? identity<AppState>;
+
+  return useSyncExternalStore(
+    appStore.subscribe,
+    () => select(appStore.getState()),
+    () => select(appStore.getInitialState()),
+  );
+}

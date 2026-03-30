@@ -11,7 +11,7 @@ const exec = util.promisify(execCb);
 const ROOT         = path.resolve(__dirname, '..', '..');
 const UI_DIR       = path.join(ROOT, 'ui');
 const BACKEND_URL  = 'http://localhost:3001';
-const FRONTEND_URL = 'http://localhost:5173';
+const DEFAULT_FRONTEND_URL = 'http://localhost:5174';
 
 const log  = (msg: string) => console.log(`  ${msg}`);
 const warn = (msg: string) => console.log(`  ! ${msg}`);
@@ -60,6 +60,11 @@ function openBrowser(url: string): void {
   spawn(cmd, args, { shell: false, detached: true, stdio: 'ignore' }).unref();
 }
 
+function extractFrontendUrl(line: string): string | null {
+  const match = line.match(/https?:\/\/(?:localhost|127\.0\.0\.1|\[[^\]]+\]):\d+/i);
+  return match?.[0] ?? null;
+}
+
 async function ensureUiDeps(): Promise<void> {
   const nmDir = path.join(UI_DIR, 'node_modules');
   const requiredPackages = [
@@ -95,6 +100,8 @@ export async function runStart(opts: StartOptions): Promise<void> {
   console.log('  ' + (opts.source === 'mock' ? 'Demo mode (mock data)' : 'Live cluster mode'));
   console.log('='.repeat(62));
 
+  let frontendUrl = DEFAULT_FRONTEND_URL;
+
   if (opts.source === 'mock') {
     console.log('\n  Info: Mock mode - skipping Docker and Neo4j preflight.');
   } else {
@@ -115,7 +122,7 @@ export async function runStart(opts: StartOptions): Promise<void> {
     cwd:   ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: false,
-    env:   { ...process.env, CORS_ORIGIN: FRONTEND_URL },
+    env:   { ...process.env, CORS_ORIGIN: frontendUrl },
   });
 
   let backendExited = false;
@@ -178,28 +185,34 @@ export async function runStart(opts: StartOptions): Promise<void> {
 
   frontend.stdout?.on('data', (d: Buffer) => {
     const line = d.toString().trim();
-    if (line) process.stdout.write(`     [ui] ${line}\n`);
+    if (!line) return;
+    const detectedUrl = extractFrontendUrl(line);
+    if (detectedUrl) frontendUrl = detectedUrl;
+    process.stdout.write(`     [ui] ${line}\n`);
   });
   frontend.stderr?.on('data', (d: Buffer) => {
     const line = d.toString().trim();
-    if (line) process.stderr.write(`     [ui] ${line}\n`);
+    if (!line) return;
+    const detectedUrl = extractFrontendUrl(line);
+    if (detectedUrl) frontendUrl = detectedUrl;
+    process.stderr.write(`     [ui] ${line}\n`);
   });
 
   try {
-    await waitFor(FRONTEND_URL, 45_000);
+    await waitFor(frontendUrl, 45_000);
   } catch {
     warn('Vite did not respond in time - opening browser anyway.');
   }
 
   if (!opts.skipBrowser) {
     log('Opening browser...');
-    openBrowser(FRONTEND_URL);
+    openBrowser(frontendUrl);
   }
 
   console.log('\n  ' + '-'.repeat(58));
   console.log('  System ready');
   console.log(`     Backend  ->  ${BACKEND_URL}`);
-  console.log(`     UI       ->  ${FRONTEND_URL}`);
+  console.log(`     UI       ->  ${frontendUrl}`);
   console.log('  ' + '-'.repeat(58));
   console.log('\n  Press Ctrl+C to stop.\n');
 
