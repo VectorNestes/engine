@@ -65,6 +65,14 @@ function extractFrontendUrl(line: string): string | null {
   return match?.[0] ?? null;
 }
 
+function splitOutputLines(chunk: Buffer): string[] {
+  return chunk
+    .toString()
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 async function ensureUiDeps(): Promise<void> {
   const nmDir = path.join(UI_DIR, 'node_modules');
   const requiredPackages = [
@@ -101,6 +109,9 @@ export async function runStart(opts: StartOptions): Promise<void> {
   console.log('='.repeat(62));
 
   let frontendUrl = DEFAULT_FRONTEND_URL;
+  let frontendUrlGenerated = false;
+  let uiBootstrapLogged = false;
+  let uiReadyLogged = false;
 
   if (opts.source === 'mock') {
     console.log('\n  Info: Mock mode - skipping Docker and Neo4j preflight.');
@@ -157,7 +168,9 @@ export async function runStart(opts: StartOptions): Promise<void> {
   }
   log('Backend ready');
 
-  log(`Loading cluster data (source: ${opts.source})...`);
+  log(opts.source === 'live'
+    ? 'Getting cluster data from kubectl...'
+    : 'Loading bundled mock cluster data...');
   try {
     await ingest(opts.source);
     log('Data loaded');
@@ -184,35 +197,86 @@ export async function runStart(opts: StartOptions): Promise<void> {
   });
 
   frontend.stdout?.on('data', (d: Buffer) => {
-    const line = d.toString().trim();
-    if (!line) return;
-    const detectedUrl = extractFrontendUrl(line);
-    if (detectedUrl) frontendUrl = detectedUrl;
-    process.stdout.write(`     [ui] ${line}\n`);
+    for (const line of splitOutputLines(d)) {
+      const detectedUrl = extractFrontendUrl(line);
+
+      if (detectedUrl) {
+        frontendUrl = detectedUrl;
+        frontendUrlGenerated = true;
+        if (!uiReadyLogged) {
+          log('UI server ready');
+          uiReadyLogged = true;
+        }
+        continue;
+      }
+
+      const normalized = line.toLowerCase();
+      if (!uiBootstrapLogged && (
+        normalized.includes('vite v') ||
+        normalized.includes('ready in') ||
+        normalized.includes('starting') ||
+        normalized.includes('building')
+      )) {
+        log('Preparing UI assets...');
+        uiBootstrapLogged = true;
+      }
+    }
   });
   frontend.stderr?.on('data', (d: Buffer) => {
-    const line = d.toString().trim();
-    if (!line) return;
-    const detectedUrl = extractFrontendUrl(line);
-    if (detectedUrl) frontendUrl = detectedUrl;
-    process.stderr.write(`     [ui] ${line}\n`);
+    for (const line of splitOutputLines(d)) {
+      const detectedUrl = extractFrontendUrl(line);
+
+      if (detectedUrl) {
+        frontendUrl = detectedUrl;
+        frontendUrlGenerated = true;
+        if (!uiReadyLogged) {
+          log('UI server ready');
+          uiReadyLogged = true;
+        }
+        continue;
+      }
+
+      const normalized = line.toLowerCase();
+      if (!uiBootstrapLogged && (
+        normalized.includes('vite v') ||
+        normalized.includes('ready in') ||
+        normalized.includes('starting') ||
+        normalized.includes('building')
+      )) {
+        log('Preparing UI assets...');
+        uiBootstrapLogged = true;
+        continue;
+      }
+
+      if (
+        normalized.includes('error') ||
+        normalized.includes('failed') ||
+        normalized.includes('address already in use')
+      ) {
+        process.stderr.write(`     [ui] ${line}\n`);
+      }
+    }
   });
 
   try {
     await waitFor(frontendUrl, 45_000);
   } catch {
-    warn('Vite did not respond in time - opening browser anyway.');
+    warn('UI did not respond in time.');
   }
 
-  if (!opts.skipBrowser) {
+  if (!opts.skipBrowser && frontendUrlGenerated) {
     log('Opening browser...');
     openBrowser(frontendUrl);
+  } else if (!opts.skipBrowser && !frontendUrlGenerated) {
+    warn('Browser not opened because the UI URL has not been generated yet.');
   }
 
   console.log('\n  ' + '-'.repeat(58));
   console.log('  System ready');
   console.log(`     Backend  ->  ${BACKEND_URL}`);
-  console.log(`     UI       ->  ${frontendUrl}`);
+  if (frontendUrlGenerated) {
+    console.log(`     UI       ->  ${frontendUrl}`);
+  }
   console.log('  ' + '-'.repeat(58));
   console.log('\n  Press Ctrl+C to stop.\n');
 
