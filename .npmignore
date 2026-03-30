@@ -1,11 +1,5 @@
 # Source files — consumers get compiled dist/ only
 src/
-ui/src/
-ui/public/
-ui/*.config.*
-ui/tsconfig.json
-ui/postcss.config.*
-ui/tailwind.config.*
 
 # Dev artifacts
 *.map
@@ -21,11 +15,11 @@ __tests__/
 coverage/
 
 # Data output
-data/
 *.json
 !package.json
 !ui/package.json
 !ui/package-lock.json
+!cluster-graph.json
 
 # Docs / CI
 .github/

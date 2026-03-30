@@ -22,12 +22,9 @@ function resolveGraphPath(override?: string): string {
   }
 
   const candidates = [
-    path.resolve(process.cwd(), 'data', 'cluster-graph.json'),
-    path.resolve(process.cwd(), 'cluster-graph.json'),
-    path.resolve(__dirname, '../../data/cluster-graph.json'),
-    path.resolve(__dirname, '../../../cluster-graph.json'),
-    path.resolve(__dirname, '../data/mock-cluster-graph.json'),
-    path.resolve(process.cwd(), 'src', 'data', 'mock-cluster-graph.json'),
+    path.resolve(__dirname, '..', '..', 'data', 'cluster-graph.json'),
+    path.resolve(__dirname, '..', 'data', 'cluster-graph.json'),
+    path.resolve(__dirname, 'data', 'cluster-graph.json'),
   ];
 
   for (const p of candidates) {

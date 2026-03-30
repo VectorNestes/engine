@@ -20,7 +20,7 @@ export interface IngestResult {
 }
 
 export const GRAPH_OUTPUT_PATH = path.resolve(
-  process.cwd(), 'data', 'cluster-graph.json'
+  __dirname, '..', '..', 'data', 'cluster-graph.json'
 );
 
 export async function ingestCluster(options: IngestOptions = {}): Promise<IngestResult> {

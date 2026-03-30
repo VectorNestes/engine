@@ -49,10 +49,9 @@ function runKubectl(command: string, resourceName: string): KubeList {
 
 function resolveMockPath(): string {
   const candidates = [
-    path.resolve(__dirname, '../data/mock-cluster-graph.json'),
-    path.resolve(__dirname, '../../src/data/mock-cluster-graph.json'),
-    path.resolve(process.cwd(), 'src/data/mock-cluster-graph.json'),
-    path.resolve(process.cwd(), 'data/mock-cluster-graph.json'),
+    path.resolve(__dirname, '..', '..', 'data', 'cluster-graph.json'),
+    path.resolve(__dirname, '..', 'data', 'cluster-graph.json'),
+    path.resolve(__dirname, 'data', 'cluster-graph.json'),
   ];
 
   for (const p of candidates) {

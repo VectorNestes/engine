@@ -53,7 +53,7 @@ async function ingest(source: 'mock' | 'live'): Promise<void> {
 
 function openBrowser(url: string): void {
   const [cmd, args] =
-    process.platform === 'win32'  ? ['cmd',      ['/c', `start ${url}`]] :
+    process.platform === 'win32'  ? ['cmd',      ['/c', 'start', '""', url]] :
     process.platform === 'darwin' ? ['open',     [url]]                  :
                                     ['xdg-open', [url]];
 
@@ -61,13 +61,16 @@ function openBrowser(url: string): void {
 }
 
 function extractFrontendUrl(line: string): string | null {
-  const match = line.match(/https?:\/\/(?:localhost|127\.0\.0\.1|\[[^\]]+\]):\d+/i);
+  // Strip ANSI escape codes that Vite adds
+  // eslint-disable-next-line no-control-regex
+  const cleanLine = line.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+  const match = cleanLine.match(/https?:\/\/(?:localhost|127\.0\.0\.1|\[[^\]]+\]):\d+/i);
   return match?.[0] ?? null;
 }
 
 function splitOutputLines(chunk: Buffer): string[] {
   return chunk
-    .toString()
+    .toString('utf8')
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
@@ -196,9 +199,17 @@ export async function runStart(opts: StartOptions): Promise<void> {
     env:   process.env,
   });
 
+  let stdoutBuffer = '';
   frontend.stdout?.on('data', (d: Buffer) => {
-    for (const line of splitOutputLines(d)) {
-      const detectedUrl = extractFrontendUrl(line);
+    stdoutBuffer += d.toString('utf8');
+    const parts = stdoutBuffer.split(/\r?\n/);
+    stdoutBuffer = parts.pop() ?? '';
+
+    for (const line of parts) {
+      const lineClean = line.trim();
+      if (!lineClean) continue;
+
+      const detectedUrl = extractFrontendUrl(lineClean);
 
       if (detectedUrl) {
         frontendUrl = detectedUrl;
@@ -210,7 +221,7 @@ export async function runStart(opts: StartOptions): Promise<void> {
         continue;
       }
 
-      const normalized = line.toLowerCase();
+      const normalized = lineClean.toLowerCase();
       if (!uiBootstrapLogged && (
         normalized.includes('vite v') ||
         normalized.includes('ready in') ||
@@ -222,9 +233,18 @@ export async function runStart(opts: StartOptions): Promise<void> {
       }
     }
   });
+
+  let stderrBuffer = '';
   frontend.stderr?.on('data', (d: Buffer) => {
-    for (const line of splitOutputLines(d)) {
-      const detectedUrl = extractFrontendUrl(line);
+    stderrBuffer += d.toString('utf8');
+    const parts = stderrBuffer.split(/\r?\n/);
+    stderrBuffer = parts.pop() ?? '';
+
+    for (const line of parts) {
+      const lineClean = line.trim();
+      if (!lineClean) continue;
+
+      const detectedUrl = extractFrontendUrl(lineClean);
 
       if (detectedUrl) {
         frontendUrl = detectedUrl;
@@ -236,7 +256,7 @@ export async function runStart(opts: StartOptions): Promise<void> {
         continue;
       }
 
-      const normalized = line.toLowerCase();
+      const normalized = lineClean.toLowerCase();
       if (!uiBootstrapLogged && (
         normalized.includes('vite v') ||
         normalized.includes('ready in') ||
@@ -253,7 +273,7 @@ export async function runStart(opts: StartOptions): Promise<void> {
         normalized.includes('failed') ||
         normalized.includes('address already in use')
       ) {
-        process.stderr.write(`     [ui] ${line}\n`);
+        process.stderr.write(`     [ui] ${lineClean}\n`);
       }
     }
   });

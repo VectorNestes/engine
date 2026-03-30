@@ -27,6 +27,7 @@
   "files": [
     "dist",
     "ui",
+    "data",
     "docker",
     ".env.example",
     "!ui/node_modules",
