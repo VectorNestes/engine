@@ -202,25 +202,27 @@ export async function runStart(opts: StartOptions): Promise<void> {
   let stdoutBuffer = '';
   frontend.stdout?.on('data', (d: Buffer) => {
     stdoutBuffer += d.toString('utf8');
-    const parts = stdoutBuffer.split(/\r?\n/);
-    stdoutBuffer = parts.pop() ?? '';
-
-    for (const line of parts) {
-      const lineClean = line.trim();
-      if (!lineClean) continue;
-
-      const detectedUrl = extractFrontendUrl(lineClean);
-
-      if (detectedUrl) {
-        frontendUrl = detectedUrl;
+    
+    // Check buffer directly without waiting for line splits
+    if (!frontendUrlGenerated) {
+      // eslint-disable-next-line no-control-regex
+      const cleanBuffer = stdoutBuffer.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+      const match = cleanBuffer.match(/https?:\/\/(?:localhost|127\.0\.0\.1|\[[^\]]+\]):\d+/i);
+      if (match) {
+        frontendUrl = match[0];
         frontendUrlGenerated = true;
         if (!uiReadyLogged) {
           log('UI server ready');
           uiReadyLogged = true;
         }
-        continue;
       }
+    }
 
+    const parts = stdoutBuffer.split(/\r?\n/);
+    stdoutBuffer = parts.pop() ?? '';
+    for (const line of parts) {
+      const lineClean = line.trim();
+      if (!lineClean) continue;
       const normalized = lineClean.toLowerCase();
       if (!uiBootstrapLogged && (
         normalized.includes('vite v') ||
@@ -237,25 +239,27 @@ export async function runStart(opts: StartOptions): Promise<void> {
   let stderrBuffer = '';
   frontend.stderr?.on('data', (d: Buffer) => {
     stderrBuffer += d.toString('utf8');
-    const parts = stderrBuffer.split(/\r?\n/);
-    stderrBuffer = parts.pop() ?? '';
-
-    for (const line of parts) {
-      const lineClean = line.trim();
-      if (!lineClean) continue;
-
-      const detectedUrl = extractFrontendUrl(lineClean);
-
-      if (detectedUrl) {
-        frontendUrl = detectedUrl;
+    
+    // Check buffer directly without waiting for line splits
+    if (!frontendUrlGenerated) {
+      // eslint-disable-next-line no-control-regex
+      const cleanBuffer = stderrBuffer.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
+      const match = cleanBuffer.match(/https?:\/\/(?:localhost|127\.0\.0\.1|\[[^\]]+\]):\d+/i);
+      if (match) {
+        frontendUrl = match[0];
         frontendUrlGenerated = true;
         if (!uiReadyLogged) {
           log('UI server ready');
           uiReadyLogged = true;
         }
-        continue;
       }
+    }
 
+    const parts = stderrBuffer.split(/\r?\n/);
+    stderrBuffer = parts.pop() ?? '';
+    for (const line of parts) {
+      const lineClean = line.trim();
+      if (!lineClean) continue;
       const normalized = lineClean.toLowerCase();
       if (!uiBootstrapLogged && (
         normalized.includes('vite v') ||
@@ -267,7 +271,6 @@ export async function runStart(opts: StartOptions): Promise<void> {
         uiBootstrapLogged = true;
         continue;
       }
-
       if (
         normalized.includes('error') ||
         normalized.includes('failed') ||
@@ -296,6 +299,8 @@ export async function runStart(opts: StartOptions): Promise<void> {
   console.log(`     Backend  ->  ${BACKEND_URL}`);
   if (frontendUrlGenerated) {
     console.log(`     UI       ->  ${frontendUrl}`);
+  } else {
+    console.log(`     UI       ->  ${DEFAULT_FRONTEND_URL} (Auto-open failed, please connect manually)`);
   }
   console.log('  ' + '-'.repeat(58));
   console.log('\n  Press Ctrl+C to stop.\n');
