@@ -136,7 +136,7 @@ export function GraphCanvas({
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 13, color: '#555555' }}>No cluster data loaded.</div>
           <div style={{ fontSize: 11, color: '#333333', marginTop: 6 }}>
-            Run: <span style={{ fontFamily: 'monospace', color: '#FF6A00' }}>npm run ingest</span>
+            Run: <span style={{ fontFamily: 'monospace', color: '#FF6A00' }}>npm run start</span> or <span style={{ fontFamily: 'monospace', color: '#FF6A00' }}>npm run ingest</span>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 
 import { BlastQuerySchema } from '../../schemas/index';
-import { getBlastRadius }   from '../../db/queries';
+import { getBlastRadius }   from '../../db/algorithms';
 
 const router = Router();
 

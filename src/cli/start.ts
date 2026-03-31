@@ -4,14 +4,12 @@ import * as path from 'path';
 import * as http from 'http';
 import * as util from 'util';
 
-import { runPreflight } from './docker';
-
 const exec = util.promisify(execCb);
 
 const ROOT         = path.resolve(__dirname, '..', '..');
 const UI_DIR       = path.join(ROOT, 'ui');
 const BACKEND_URL  = 'http://localhost:3001';
-const DEFAULT_FRONTEND_URL = 'http://localhost:5174';
+const DEFAULT_FRONTEND_URL = 'http://localhost:5173';
 
 const log  = (msg: string) => console.log(`  ${msg}`);
 const warn = (msg: string) => console.log(`  ! ${msg}`);
@@ -49,6 +47,7 @@ async function ingest(source: 'mock' | 'live'): Promise<void> {
     const text = await res.text().catch(() => '');
     throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
   }
+  await res.json().catch(() => null);
 }
 
 function openBrowser(url: string): void {
@@ -116,26 +115,19 @@ export async function runStart(opts: StartOptions): Promise<void> {
   let uiBootstrapLogged = false;
   let uiReadyLogged = false;
 
-  if (opts.source === 'mock') {
-    console.log('\n  Info: Mock mode - skipping Docker and Neo4j preflight.');
-  } else {
-    const preflight = await runPreflight();
-    if (!preflight.ok) process.exit(1);
-  }
-
   console.log();
 
   log('Starting backend...');
 
-  const distServer = path.join(ROOT, 'dist', 'server', 'server.js');
-  const [backendCmd, backendArgs] = fs.existsSync(distServer)
-    ? ['node',  [distServer]]
-    : ['npx',   ['ts-node', path.join(ROOT, 'src', 'server', 'server.ts')]];
+  const backendEntry = path.join(ROOT, 'src', 'server', 'server.ts');
+  const [backendCmd, backendArgs, backendShell] = process.platform === 'win32'
+    ? ['cmd', ['/c', 'npx', 'ts-node', backendEntry], false]
+    : ['npx', ['ts-node', backendEntry], false];
 
   const backend: ChildProcess = spawn(backendCmd, backendArgs, {
     cwd:   ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
-    shell: false,
+    shell: backendShell,
     env:   { ...process.env, CORS_ORIGIN: frontendUrl },
   });
 
@@ -161,26 +153,21 @@ export async function runStart(opts: StartOptions): Promise<void> {
   try {
     await waitFor(`${BACKEND_URL}/health`, 60_000);
   } catch {
-    console.error('\n  ERROR: Backend did not start within 60s.');
-    if (opts.source !== 'mock') {
-      console.error('     Ensure Neo4j is running:');
-      console.error('       cd docker && docker compose up -d');
-    }
+    console.error('\n  ERROR: Backend did not start within 60s. Check logs above.');
     backend.kill();
     process.exit(1);
   }
   log('Backend ready');
 
-  log(opts.source === 'live'
-    ? 'Getting cluster data from kubectl...'
-    : 'Loading bundled mock cluster data...');
+  log(`Loading ${opts.source === 'mock' ? 'mock' : 'live'} graph data into backend...`);
   try {
     await ingest(opts.source);
-    log('Data loaded');
   } catch (err) {
-    warn(`Ingest warning: ${(err as Error).message}`);
-    warn('UI will start in empty state - check Neo4j connection.');
+    console.error(`\n  ERROR: Failed to ingest graph data: ${(err as Error).message}`);
+    backend.kill();
+    process.exit(1);
   }
+  log('Backend graph loaded and ready for the UI.');
 
   try {
     await ensureUiDeps();

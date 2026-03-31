@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 
 import { CyclesQuerySchema } from '../../schemas/index';
-import { detectCycles }      from '../../db/queries';
+import { detectCycles }      from '../../db/algorithms';
 
 const router = Router();
 

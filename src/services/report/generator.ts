@@ -1,19 +1,18 @@
-import { runQuery }          from '../../db/neo4j-client';
+import { getGraph } from '../../db/graphEngine';
 import {
   findAttackPaths,
   findShortestPath,
   detectCycles,
   findCriticalNodes,
   getBlastRadius,
-  ensureProjection,
-} from '../../db/queries';
+} from '../../db/algorithms';
 import type {
   PathResult,
   DijkstraResult,
   CycleResult,
   CriticalNode,
+  BlastResult,
 } from '../../db/types';
-import type { BlastResult } from '../../db/queries';
 
 export interface BlastRadiusEntry {
   entryPoint: string;
@@ -29,29 +28,29 @@ export interface ReportData {
   criticalNode:  CriticalNode | null;
 }
 
-async function getEntryPoints(): Promise<string[]> {
-  const rows = await runQuery<{ id: string }>(
-    'MATCH (n:K8sNode) WHERE n.isEntryPoint = true RETURN n.id AS id'
-  );
-  return rows.map((r) => r.id);
+function getEntryPoints(): string[] {
+  const graph = getGraph();
+  const eps: string[] = [];
+  graph.forEachNode((node, attrs) => {
+    if (attrs.isEntryPoint) eps.push(node);
+  });
+  return eps;
 }
 
-async function getCrownJewels(): Promise<string[]> {
-  const rows = await runQuery<{ id: string }>(
-    'MATCH (n:K8sNode) WHERE n.isCrownJewel = true RETURN n.id AS id'
-  );
-  return rows.map((r) => r.id);
+function getCrownJewels(): string[] {
+  const graph = getGraph();
+  const cjs: string[] = [];
+  graph.forEachNode((node, attrs) => {
+    if (attrs.isCrownJewel) cjs.push(node);
+  });
+  return cjs;
 }
 
 export async function generateReport(): Promise<ReportData> {
-  await ensureProjection(false);
-
   const attackPaths = await findAttackPaths();
 
-  const [entryPoints, crownJewels] = await Promise.all([
-    getEntryPoints(),
-    getCrownJewels(),
-  ]);
+  const entryPoints = getEntryPoints();
+  const crownJewels = getCrownJewels();
 
   const dijkstraPromises: Promise<DijkstraResult | null>[] = [];
   for (const ep of entryPoints) {

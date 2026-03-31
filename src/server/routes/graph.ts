@@ -1,44 +1,44 @@
 import { Router, Request, Response, NextFunction } from 'express';
-
-import { runQuery } from '../../db/neo4j-client';
+import { getGraph } from '../../db/graphEngine';
+import { GraphNode, GraphEdge } from '../../db/types';
 
 const router = Router();
 
 router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
   try {
-    const [nodesResult, edgesResult] = await Promise.all([
-      runQuery<{
-        id: string; type: string; name: string; namespace: string;
-        riskScore: number; isEntryPoint: boolean; isCrownJewel: boolean;
-        image: string | null; cve: string[];
-      }>(`
-        MATCH (n:K8sNode) 
-        RETURN
-          n.id           AS id,
-          n.type         AS type,
-          n.name         AS name,
-          n.namespace    AS namespace,
-          n.riskScore    AS riskScore,
-          n.isEntryPoint AS isEntryPoint,
-          n.isCrownJewel AS isCrownJewel,
-          n.image        AS image,
-          n.cve          AS cve
-        ORDER BY n.riskScore DESC
-      `),
-      runQuery<{
-        from: string; to: string; type: string;
-        weight: number; verbs: string[]; resources: string[];
-      }>(`
-        MATCH (a:K8sNode)-[r]->(b:K8sNode)
-        RETURN
-          a.id       AS from,
-          b.id       AS to,
-          type(r)    AS type,
-          r.weight   AS weight,
-          r.verbs    AS verbs,
-          r.resources AS resources
-      `),
-    ]);
+    const graph = getGraph();
+    console.log('API /api/graph hit! Graph order:', graph.order);
+
+    const nodesResult: any[] = [];
+    const edgesResult: any[] = [];
+
+    graph.forEachNode((node, attributes) => {
+      nodesResult.push({
+        id: node,
+        type: attributes.type,
+        name: attributes.name,
+        namespace: attributes.namespace,
+        riskScore: attributes.riskScore,
+        isEntryPoint: attributes.isEntryPoint,
+        isCrownJewel: attributes.isCrownJewel,
+        image: attributes.image,
+        cve: attributes.cve
+      });
+    });
+
+    // Sort nodes manually by riskScore DESC
+    nodesResult.sort((a, b) => (b.riskScore || 0) - (a.riskScore || 0));
+
+    graph.forEachEdge((edge, attributes, source, target) => {
+      edgesResult.push({
+        from: source,
+        to: target,
+        type: attributes.type,
+        weight: attributes.weight,
+        verbs: attributes.verbs,
+        resources: attributes.resources
+      });
+    });
 
     res.json({
       nodes:    nodesResult,

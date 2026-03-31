@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 
 import { PathsQuerySchema } from '../../schemas/index';
-import { findAttackPaths }  from '../../db/queries';
+import { findAttackPaths }  from '../../db/algorithms';
 import {
   explainPath,
   type ExplainerNode,

@@ -3,8 +3,7 @@ import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 
-import { verifyConnection }  from '../db/neo4j-client';
-import { ensureProjection }  from '../db/queries';
+// Neo4j graph processing replaced with native in-memory TS graph.
 
 import ingestRouter          from './routes/ingest';
 import graphRouter           from './routes/graph';
@@ -15,6 +14,7 @@ import reportRouter          from './routes/report';
 import criticalRouter        from './routes/critical';
 import simulateRouter        from './routes/simulate';
 import vulnerabilitiesRouter from './routes/vulnerabilities';
+import { loadGraph }         from '../db/graphEngine';
 
 const PORT = Number(process.env['PORT'] ?? 3001);
 
@@ -23,26 +23,20 @@ async function boot(): Promise<void> {
   console.log('  🔐 Kubernetes Attack Path Visualizer — API Server');
   console.log('═'.repeat(60));
 
-  console.log('\n  [1/3] Environment variables loaded');
+  console.log('\n  [1/1] Environment variables loaded');
 
-  console.log('\n  [2/3] Verifying Neo4j connection...');
+  // The engine now uses an in-memory graph via TS Graphology instead of Neo4j.
+  // Load pre-generated graph (from 'npm run ingest') on startup if it exists.
   try {
-    await verifyConnection();
+    loadGraph();
   } catch (err) {
-    console.error('\n  ❌ Neo4j unreachable — aborting startup.');
-    console.error(`     ${err instanceof Error ? err.message : String(err)}`);
-    console.error('\n  Run:  cd docker && docker-compose up -d');
-    console.error('  Then wait ~60s for GDS to finish downloading.\n');
-    process.exit(1);
+    if (err instanceof Error && err.message.includes('not found')) {
+      console.log('  i No pre-existing graph data found in data/. Run `npm run ingest` first.');
+    } else {
+      console.log(`  ! Could not load previously generated graph data: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
-  console.log('\n  [3/3] Ensuring GDS projection...');
-  try {
-    await ensureProjection(false);
-  } catch (err) {
-    console.warn(`  ⚠  GDS projection skipped: ${err instanceof Error ? err.message : String(err)}`);
-    console.warn('     Call POST /api/ingest to load graph data first.');
-  }
 
   const app = express();
 

@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 
 import { SimulateInputSchema } from '../../schemas/index';
-import { runQuery }            from '../../db/neo4j-client';
+import { findAttackPaths } from '../../db/algorithms';
 
 const router = Router();
 
@@ -17,24 +17,14 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const start = Date.now();
 
-    const [baselineRows, filteredRows] = await Promise.all([
-      runQuery<{ count: number }>(`
-        MATCH p = (s:K8sNode)-[*1..${maxHops}]->(e:K8sNode)
-        WHERE s.isEntryPoint = true AND e.isCrownJewel = true
-        RETURN count(p) AS count
-      `),
-      runQuery<{ count: number }>(`
-        MATCH p = (s:K8sNode)-[*1..${maxHops}]->(e:K8sNode)
-        WHERE s.isEntryPoint = true
-          AND e.isCrownJewel = true
-          AND NONE(n IN nodes(p) WHERE n.id = $id)
-        RETURN count(p) AS count
-      `, { id: nodeId }),
+    const [allPaths, filteredPaths] = await Promise.all([
+      findAttackPaths(maxHops, 10000),             // Baseline
+      findAttackPaths(maxHops, 10000, nodeId),     // Simulated removal
     ]);
 
     const elapsed         = Date.now() - start;
-    const baselineCount   = (baselineRows[0]?.count as number) ?? 0;
-    const filteredCount   = (filteredRows[0]?.count as number) ?? 0;
+    const baselineCount   = allPaths.length;
+    const filteredCount   = filteredPaths.length;
     const eliminated      = baselineCount - filteredCount;
     const reductionPct    =
       baselineCount > 0

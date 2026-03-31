@@ -5,12 +5,9 @@ import { runScan }   from './scan';
 import { runStart }  from './start';
 
 import { ingestCluster }    from '../services/ingestion.service';
-import { loadGraph }        from '../db/loader';
-import { ensureProjection } from '../db/queries';
-import { verifyConnection } from '../db/neo4j-client';
+import { loadGraph }        from '../db/graphEngine';
 import { generateReport }   from '../services/report/generator';
 import { formatReport }     from '../services/report/formatter';
-import { runPreflight }     from './docker';
 
 import {
   printBanner,
@@ -64,10 +61,10 @@ program
 
 program
   .command('ingest')
-  .description('Full ingestion: fetch cluster data → load Neo4j → re-project GDS')
+  .description('Full ingestion: fetch cluster data → build in-memory Graphology model')
   .option('--source <source>', 'Data source: mock | live', 'mock')
   .option('--skip-cve',        'Skip CVE enrichment (faster)', false)
-  .option('--wipe',            'Wipe existing Neo4j graph before loading', false)
+  .option('--wipe',            'Wipe existing graph before loading', false)
   .action(async (opts: { source: string; skipCve: boolean; wipe: boolean }) => {
     printBanner();
     const source = opts.source === 'live' ? 'live' : 'mock';
@@ -75,29 +72,18 @@ program
     try {
       printSection('Ingestion Pipeline', '⬡');
 
-      const preflight = await runPreflight();
-      if (!preflight.ok) process.exit(1);
-
-      step('Connecting to Neo4j...', 1);
-      await verifyConnection();
-      ok('Neo4j connection established');
-
-      step('Ingesting cluster data...', 2);
+      step('Ingesting cluster data...', 1);
       const ingestResult = await ingestCluster({ source, skipCve: opts.skipCve });
       ok('Graph JSON written');
       detail('Nodes', ingestResult.nodes);
       detail('Edges', ingestResult.edges);
 
-      step('Loading graph into Neo4j...', 3);
-      const stats = await loadGraph(ingestResult.graphPath, opts.wipe);
-      ok('Neo4j graph loaded');
+      step('Loading graph into Memory engine...', 2);
+      const stats = loadGraph(ingestResult.graphPath, opts.wipe);
+      ok('In-memory graph loaded');
       detail('Nodes loaded',  stats.nodesLoaded);
       detail('Edges loaded',  stats.edgesLoaded);
       detail('Duration',      `${stats.durationMs}ms`);
-
-      step('Projecting GDS graph...', 4);
-      await ensureProjection(true);
-      ok('GDS projection ready');
 
       divider();
       ok('Ingestion complete  ·  Run `report` to analyse.\n');
@@ -113,18 +99,21 @@ program
 
 program
   .command('report')
-  .description('Generate a full attack-path report from Neo4j data')
+  .description('Generate a full attack-path report from the Graph model')
+  .option('--source <source>', 'Data source: mock | live', 'mock')
   .option('--format <format>', 'Output format: text | json', 'text')
-  .action(async (opts: { format: string }) => {
+  .action(async (opts: { source: string; format: string }) => {
     printBanner();
     const format = opts.format === 'json' ? 'json' : 'text';
+    const source = opts.source === 'live' ? 'live' : 'mock';
 
     try {
       printSection('Attack-Path Report', '⬡');
 
-      step('Connecting to Neo4j...');
-      await verifyConnection();
-      ok('Connected');
+      step('Initializing memory graph...');
+      const { GRAPH_OUTPUT_PATH } = await import('../services/ingestion.service');
+      loadGraph(GRAPH_OUTPUT_PATH, true);
+      ok('Memory Graph Initialized');
 
       step('Generating report...');
       const data = await generateReport();

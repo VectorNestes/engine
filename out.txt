@@ -1,0 +1,444 @@
+
+> k8s-av@1.0.9 report
+> ts-node src/cli/index.ts report --format text
+
+
+╔═════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                                 ║
+║  ██╗   ██╗███████╗ ██████╗████████╗ ██████╗ ██████╗ ███╗   ██╗███████╗███████╗████████╗███████╗ ║
+║  ██║   ██║██╔════╝██╔════╝╚══██╔══╝██╔═══██╗██╔══██╗████╗  ██║██╔════╝██╔════╝╚══██╔══╝██╔════╝ ║
+║  ██║   ██║█████╗  ██║        ██║   ██║   ██║██████╔╝██╔██╗ ██║█████╗  ███████╗   ██║   █████╗   ║
+║  ╚██╗ ██╔╝██╔══╝  ██║        ██║   ██║   ██║██╔══██╗██║╚██╗██║██╔══╝  ╚════██║   ██║   ██╔══╝   ║
+║   ╚████╔╝ ███████╗╚██████╗   ██║   ╚██████╔╝██║  ██║██║ ╚████║███████╗███████║   ██║   ███████╗ ║
+║    ╚═══╝  ╚══════╝ ╚═════╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝   ╚═╝   ╚══════╝ ║
+║                                                                                                 ║
+║                        Kubernetes RBAC Attack-Path Intelligence Platform                        ║
+║                            v1.0.8  ·  Mon, 30 Mar 2026 22:27:53 GMT                             ║
+║                                                                                                 ║
+╚═════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+──────────────────────────────────────────────────────────────
+  ⬡  Attack-Path Report
+──────────────────────────────────────────────────────────────
+
+  › Initializing memory graph...
+
+  → Reading graph from: D:\engine\data\cluster-graph.json
+  → Parsed: 42 nodes, 70 edges
+  ✔ In-memory graph cleared
+
+  Loading nodes into memory...
+
+  Loading edges into memory...
+
+  ──────────────────────────────────────────────────
+  ✔ Nodes loaded  : 42
+  ✔ Edges loaded  : 70
+  ✔ Duration      : 5ms
+  ✔ Memory Graph ready ✅
+  ──────────────────────────────────────────────────
+  ✔  Memory Graph Initialized
+
+  › Generating report...
+
+  → Running memory BFS attack-path discovery (maxHops=10)...
+
+  → Running memory Dijkstra: default:nginx-lb → production:db-credentials
+
+  → Running memory Dijkstra: default:nginx-lb → production:api-key
+
+  → Running memory Dijkstra: default:nginx-lb → default:tls-private-key
+
+  → Running memory Dijkstra: default:nginx-lb → kube-system:admin-token
+
+  → Running memory Dijkstra: default:nginx-lb → production:jwt-secret
+
+  → Running memory Dijkstra: default:nginx-lb → monitoring:monitoring-credentials
+
+  → Running memory Dijkstra: default:nginx-lb → production:production-postgres
+
+  → Running memory Dijkstra: default:nginx-lb → production:production-redis
+
+  → Running memory Dijkstra: production:api-lb → production:db-credentials
+
+  → Running memory Dijkstra: production:api-lb → production:api-key
+
+  → Running memory Dijkstra: production:api-lb → default:tls-private-key
+
+  → Running memory Dijkstra: production:api-lb → kube-system:admin-token
+
+  → Running memory Dijkstra: production:api-lb → production:jwt-secret
+
+  → Running memory Dijkstra: production:api-lb → monitoring:monitoring-credentials
+
+  → Running memory Dijkstra: production:api-lb → production:production-postgres
+
+  → Running memory Dijkstra: production:api-lb → production:production-redis
+
+  → Running memory Dijkstra: production:frontend-lb → production:db-credentials
+
+  → Running memory Dijkstra: production:frontend-lb → production:api-key
+
+  → Running memory Dijkstra: production:frontend-lb → default:tls-private-key
+
+  → Running memory Dijkstra: production:frontend-lb → kube-system:admin-token
+
+  → Running memory Dijkstra: production:frontend-lb → production:jwt-secret
+
+  → Running memory Dijkstra: production:frontend-lb → monitoring:monitoring-credentials
+
+  → Running memory Dijkstra: production:frontend-lb → production:production-postgres
+
+  → Running memory Dijkstra: production:frontend-lb → production:production-redis
+
+  → Computing memory blast radius for: default:nginx-lb
+
+  → Computing memory blast radius for: production:api-lb
+
+  → Computing memory blast radius for: production:frontend-lb
+
+  → Running memory cycle detection (maxDepth=8)...
+
+  → Running memory betweenness centrality (top 1 nodes)...
+  ✔  Report generated
+  ──────────────────────────────────────────────────────────────
+
+╔══════════════════════════════════════════════════════════════════╗
+║  KUBERNETES ATTACK PATH ANALYSIS REPORT                          ║
+╚══════════════════════════════════════════════════════════════════╝
+
+  Generated : 2026-03-30T22:27:53.651Z
+
+──────────────────────────────────────────────────────────────────
+  EXECUTIVE SUMMARY
+──────────────────────────────────────────────────────────────────
+  Attack Paths Found  : 36
+  Critical (risk ≥ 7) : 36
+  Crown Jewels At Risk: 8
+  Dijkstra Paths      : 17
+  Privilege Cycles    : 1
+  Critical Chokepoint : production:pod-executor
+
+──────────────────────────────────────────────────────────────────
+  ATTACK PATHS  (BFS — all routes, ordered by risk)
+──────────────────────────────────────────────────────────────────
+  Path 1  [████████░░] 8.09/10
+  Entry  : production:frontend-lb
+  Target : production:production-postgres
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → production:configmap-admin → production:production-postgres
+  Hops   : 7  |  Weight: 47
+
+  Path 2  [████████░░] 8.09/10
+  Entry  : production:frontend-lb
+  Target : production:production-postgres
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:production-postgres
+  Hops   : 7  |  Weight: 47
+
+  Path 3  [████████░░] 8.09/10
+  Entry  : production:frontend-lb
+  Target : production:production-redis
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → production:configmap-admin → production:production-redis
+  Hops   : 7  |  Weight: 47
+
+  Path 4  [████████░░] 8.09/10
+  Entry  : production:frontend-lb
+  Target : production:production-redis
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:production-redis
+  Hops   : 7  |  Weight: 47
+
+  Path 5  [███████░░░] 7.43/10
+  Entry  : production:frontend-lb
+  Target : production:db-credentials
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:db-credentials
+  Hops   : 7  |  Weight: 46
+
+  Path 6  [███████░░░] 7.43/10
+  Entry  : production:frontend-lb
+  Target : production:api-key
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:api-key
+  Hops   : 7  |  Weight: 46
+
+  Path 7  [███████░░░] 7.43/10
+  Entry  : production:frontend-lb
+  Target : default:tls-private-key
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → default:tls-private-key
+  Hops   : 7  |  Weight: 46
+
+  Path 8  [███████░░░] 7.43/10
+  Entry  : production:frontend-lb
+  Target : kube-system:admin-token
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → kube-system:admin-token
+  Hops   : 7  |  Weight: 46
+
+  Path 9  [███████░░░] 7.43/10
+  Entry  : production:frontend-lb
+  Target : production:jwt-secret
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:jwt-secret
+  Hops   : 7  |  Weight: 46
+
+  Path 10  [███████░░░] 7.43/10
+  Entry  : production:frontend-lb
+  Target : monitoring:monitoring-credentials
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → monitoring:monitoring-credentials
+  Hops   : 7  |  Weight: 46
+
+  Path 11  [████████░░] 7.97/10
+  Entry  : production:frontend-lb
+  Target : production:production-postgres
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:production-postgres
+  Hops   : 7  |  Weight: 45
+
+  Path 12  [████████░░] 7.97/10
+  Entry  : production:frontend-lb
+  Target : production:production-postgres
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:db-client-3a6b5c4d2-ef7gh → production:db-sa → production:backend-role → production:production-postgres
+  Hops   : 7  |  Weight: 45
+
+  Path 13  [████████░░] 7.97/10
+  Entry  : production:frontend-lb
+  Target : production:production-postgres
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:celery-worker-9e2f1a3b4-uv5wx → production:worker-sa → production:backend-role → production:production-postgres
+  Hops   : 7  |  Weight: 45
+
+  Path 14  [████████░░] 7.97/10
+  Entry  : production:frontend-lb
+  Target : production:production-redis
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:production-redis
+  Hops   : 7  |  Weight: 45
+
+  Path 15  [████████░░] 7.97/10
+  Entry  : production:frontend-lb
+  Target : production:production-redis
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:db-client-3a6b5c4d2-ef7gh → production:db-sa → production:backend-role → production:production-redis
+  Hops   : 7  |  Weight: 45
+
+  Path 16  [████████░░] 7.97/10
+  Entry  : production:frontend-lb
+  Target : production:production-redis
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:celery-worker-9e2f1a3b4-uv5wx → production:worker-sa → production:backend-role → production:production-redis
+  Hops   : 7  |  Weight: 45
+
+  Path 17  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:db-credentials
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:db-credentials
+  Hops   : 7  |  Weight: 44
+
+  Path 18  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:db-credentials
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:db-client-3a6b5c4d2-ef7gh → production:db-sa → production:backend-role → production:db-credentials
+  Hops   : 7  |  Weight: 44
+
+  Path 19  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:db-credentials
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:celery-worker-9e2f1a3b4-uv5wx → production:worker-sa → production:backend-role → production:db-credentials
+  Hops   : 7  |  Weight: 44
+
+  Path 20  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:api-key
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:api-key
+  Hops   : 7  |  Weight: 44
+
+  Path 21  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:api-key
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:db-client-3a6b5c4d2-ef7gh → production:db-sa → production:backend-role → production:api-key
+  Hops   : 7  |  Weight: 44
+
+  Path 22  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:api-key
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:celery-worker-9e2f1a3b4-uv5wx → production:worker-sa → production:backend-role → production:api-key
+  Hops   : 7  |  Weight: 44
+
+  Path 23  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:jwt-secret
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:jwt-secret
+  Hops   : 7  |  Weight: 44
+
+  Path 24  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:jwt-secret
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:db-client-3a6b5c4d2-ef7gh → production:db-sa → production:backend-role → production:jwt-secret
+  Hops   : 7  |  Weight: 44
+
+  Path 25  [███████░░░] 7.31/10
+  Entry  : production:frontend-lb
+  Target : production:jwt-secret
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:celery-worker-9e2f1a3b4-uv5wx → production:worker-sa → production:backend-role → production:jwt-secret
+  Hops   : 7  |  Weight: 44
+
+  Path 26  [████████░░] 8.2/10
+  Entry  : production:api-lb
+  Target : production:production-postgres
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → production:configmap-admin → production:production-postgres
+  Hops   : 4  |  Weight: 28
+
+  Path 27  [████████░░] 8.2/10
+  Entry  : production:api-lb
+  Target : production:production-postgres
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:production-postgres
+  Hops   : 4  |  Weight: 28
+
+  Path 28  [████████░░] 8.2/10
+  Entry  : production:api-lb
+  Target : production:production-redis
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → production:configmap-admin → production:production-redis
+  Hops   : 4  |  Weight: 28
+
+  Path 29  [████████░░] 8.2/10
+  Entry  : production:api-lb
+  Target : production:production-redis
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:production-redis
+  Hops   : 4  |  Weight: 28
+
+  Path 30  [████████░░] 7.5/10
+  Entry  : production:api-lb
+  Target : production:db-credentials
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:db-credentials
+  Hops   : 4  |  Weight: 27
+
+  Path 31  [████████░░] 7.5/10
+  Entry  : production:api-lb
+  Target : production:api-key
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:api-key
+  Hops   : 4  |  Weight: 27
+
+  Path 32  [████████░░] 7.5/10
+  Entry  : production:api-lb
+  Target : default:tls-private-key
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → default:tls-private-key
+  Hops   : 4  |  Weight: 27
+
+  Path 33  [████████░░] 7.5/10
+  Entry  : production:api-lb
+  Target : kube-system:admin-token
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → kube-system:admin-token
+  Hops   : 4  |  Weight: 27
+
+  Path 34  [████████░░] 7.5/10
+  Entry  : production:api-lb
+  Target : production:jwt-secret
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:jwt-secret
+  Hops   : 4  |  Weight: 27
+
+  Path 35  [████████░░] 7.5/10
+  Entry  : production:api-lb
+  Target : monitoring:monitoring-credentials
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → monitoring:monitoring-credentials
+  Hops   : 4  |  Weight: 27
+
+  Path 36  [███████░░░] 7/10
+  Entry  : default:nginx-lb
+  Target : default:tls-private-key
+  Route  : default:nginx-lb → default:nginx-deployment-7fb96c846b-xk2hm → default:nginx-sa → default:secret-reader → default:tls-private-key
+  Hops   : 4  |  Weight: 22
+
+──────────────────────────────────────────────────────────────────
+  SHORTEST PATHS  (Dijkstra GDS — minimum-weight route)
+──────────────────────────────────────────────────────────────────
+  Dijkstra 1: default:nginx-lb  →  default:tls-private-key
+  Cost   : 22  |  Hops: 4
+  Route  : default:nginx-lb → default:nginx-deployment-7fb96c846b-xk2hm → default:nginx-sa → default:secret-reader → default:tls-private-key
+
+  Dijkstra 2: production:api-lb  →  production:db-credentials
+  Cost   : 27  |  Hops: 4
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:db-credentials
+
+  Dijkstra 3: production:api-lb  →  production:api-key
+  Cost   : 27  |  Hops: 4
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:api-key
+
+  Dijkstra 4: production:api-lb  →  default:tls-private-key
+  Cost   : 27  |  Hops: 4
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → default:tls-private-key
+
+  Dijkstra 5: production:api-lb  →  kube-system:admin-token
+  Cost   : 27  |  Hops: 4
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → kube-system:admin-token
+
+  Dijkstra 6: production:api-lb  →  production:jwt-secret
+  Cost   : 27  |  Hops: 4
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → production:jwt-secret
+
+  Dijkstra 7: production:api-lb  →  monitoring:monitoring-credentials
+  Cost   : 27  |  Hops: 4
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → monitoring:monitoring-credentials
+
+  Dijkstra 8: production:api-lb  →  production:production-postgres
+  Cost   : 28  |  Hops: 4
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → production:configmap-admin → production:production-postgres
+
+  Dijkstra 9: production:api-lb  →  production:production-redis
+  Cost   : 28  |  Hops: 4
+  Route  : production:api-lb → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → production:configmap-admin → production:production-redis
+
+  Dijkstra 10: production:frontend-lb  →  production:db-credentials
+  Cost   : 44  |  Hops: 7
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:db-credentials
+
+  Dijkstra 11: production:frontend-lb  →  production:api-key
+  Cost   : 44  |  Hops: 7
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:api-key
+
+  Dijkstra 12: production:frontend-lb  →  default:tls-private-key
+  Cost   : 46  |  Hops: 7
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → default:tls-private-key
+
+  Dijkstra 13: production:frontend-lb  →  kube-system:admin-token
+  Cost   : 46  |  Hops: 7
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → kube-system:admin-token
+
+  Dijkstra 14: production:frontend-lb  →  production:jwt-secret
+  Cost   : 44  |  Hops: 7
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:jwt-secret
+
+  Dijkstra 15: production:frontend-lb  →  monitoring:monitoring-credentials
+  Cost   : 46  |  Hops: 7
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:api-server-5d8f9b6c7-p4qrs → production:api-sa → cluster:api-cluster-role → monitoring:monitoring-credentials
+
+  Dijkstra 16: production:frontend-lb  →  production:production-postgres
+  Cost   : 45  |  Hops: 7
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:production-postgres
+
+  Dijkstra 17: production:frontend-lb  →  production:production-redis
+  Cost   : 45  |  Hops: 7
+  Route  : production:frontend-lb → production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor → production:backend-worker-4b7c6d5e3-ab1cd → production:backend-sa → production:backend-role → production:production-redis
+
+──────────────────────────────────────────────────────────────────
+  BLAST RADIUS  (nodes reachable from each entry point)
+──────────────────────────────────────────────────────────────────
+  default:nginx-lb
+    Reachable nodes  : 4
+    Crown jewels hit : default:tls-private-key
+  production:api-lb
+    Reachable nodes  : 16
+    Crown jewels hit : production:production-postgres, production:production-redis, production:db-credentials, production:api-key, default:tls-private-key, kube-system:admin-token, production:jwt-secret, monitoring:monitoring-credentials
+  production:frontend-lb
+    Reachable nodes  : 26
+    Crown jewels hit : production:production-postgres, production:production-redis, production:db-credentials, production:api-key, default:tls-private-key, kube-system:admin-token, production:jwt-secret, monitoring:monitoring-credentials
+
+──────────────────────────────────────────────────────────────────
+  PRIVILEGE ESCALATION CYCLES
+──────────────────────────────────────────────────────────────────
+  Cycle 1  (length: 3)
+  Nodes : production:frontend-6c9d8f7b5-mn3op → production:frontend-sa → production:pod-executor
+  Rels  : USES_SERVICE_ACCOUNT, BINDS_TO, CAN_EXEC_INTO
+
+──────────────────────────────────────────────────────────────────
+  CRITICAL NODE  (highest betweenness centrality)
+──────────────────────────────────────────────────────────────────
+  ID           : production:pod-executor
+  Name         : pod-executor
+  Type         : Role  |  Namespace: production
+  Betweenness  : 0.04
+  Risk Score   : [█████░░░░░] 5.4/10
+  Entry Point  : false
+  Crown Jewel  : false
+
+──────────────────────────────────────────────────────────────────

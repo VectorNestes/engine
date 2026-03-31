@@ -1,8 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 
 import { CriticalQuerySchema } from '../../schemas/index';
-import { findCriticalNodes }   from '../../db/queries';
-import { runQuery }            from '../../db/neo4j-client';
+import { findCriticalNodes, findAttackPaths }   from '../../db/algorithms';
 
 const router = Router();
 
@@ -25,23 +24,14 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const topNode = criticalNodes[0]!;
 
-    const [allPathsRows, filteredPathsRows] = await Promise.all([
-      runQuery<{ count: number }>(`
-        MATCH p = (s:K8sNode)-[*1..10]->(e:K8sNode)
-        WHERE s.isEntryPoint = true AND e.isCrownJewel = true
-        RETURN count(p) AS count
-      `),
-      runQuery<{ count: number }>(`
-        MATCH p = (s:K8sNode)-[*1..10]->(e:K8sNode)
-        WHERE s.isEntryPoint = true
-          AND e.isCrownJewel = true
-          AND NONE(n IN nodes(p) WHERE n.id = $id)
-        RETURN count(p) AS count
-      `, { id: topNode.nodeId }),
+    // Simulate node elimination natively on the memory graph
+    const [allPaths, filteredPaths] = await Promise.all([
+      findAttackPaths(10, 10000),                      // Get all paths
+      findAttackPaths(10, 10000, topNode.nodeId)       // Get paths simulating dropping the critical node
     ]);
 
-    const totalPaths      = (allPathsRows[0]?.count as number) ?? 0;
-    const pathsWithout    = (filteredPathsRows[0]?.count as number) ?? 0;
+    const totalPaths      = allPaths.length;
+    const pathsWithout    = filteredPaths.length;
     const pathsEliminated = totalPaths - pathsWithout;
     const reductionPct    =
       totalPaths > 0

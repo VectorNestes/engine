@@ -1,0 +1,36 @@
+
+════════════════════════════════════════════════════════════
+  🔐 Kubernetes Attack Path Visualizer — API Server
+════════════════════════════════════════════════════════════
+
+  [1/1] Environment variables loaded
+
+  → Reading graph from: D:\engine\data\cluster-graph.json
+  → Parsed: 42 nodes, 70 edges
+
+  Loading nodes into memory...
+
+  Loading edges into memory...
+
+  ──────────────────────────────────────────────────
+  ✔ Nodes loaded  : 42
+  ✔ Edges loaded  : 70
+  ✔ Duration      : 10ms
+  ✔ Memory Graph ready ✅
+  ──────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+  ✔ Server ready  →  http://localhost:3001
+
+  Routes:
+    POST /api/ingest
+    GET  /api/graph
+    GET  /api/paths
+    GET  /api/vulnerabilities
+    GET  /api/blast-radius?nodeId=<ns:name>
+    GET  /api/cycles
+    GET  /api/report
+    GET  /api/critical-node
+    POST /api/simulate
+────────────────────────────────────────────────────────────
+

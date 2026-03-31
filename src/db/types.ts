@@ -158,3 +158,19 @@ export interface TestSummary {
   criticalNodesTop: string;
   allPassed: boolean;
 }
+
+export interface BlastResult {
+  reachableNodeId: string;
+  name: string;
+  type: string;
+  namespace: string;
+  hops: number;
+  isCrownJewel: boolean;
+  riskScore: number;
+}
+
+export interface AlgorithmResults {
+  attackPaths: PathResult[];
+  cycles: CycleResult[];
+  criticalNodes: CriticalNode[];
+}

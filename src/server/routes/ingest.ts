@@ -2,8 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 
 import { IngestInputSchema } from '../../schemas/index';
 import { ingestCluster }     from '../../services/ingestion.service';
-import { loadGraph }         from '../../db/loader';
-import { ensureProjection }  from '../../db/queries';
+import { loadGraph }         from '../../db/graphEngine';
 
 const router = Router();
 
@@ -36,20 +35,10 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   let loaderStats: { nodesLoaded: number; edgesLoaded: number; durationMs: number };
 
   try {
-    loaderStats = await loadGraph(graphPath, wipe);
+    loaderStats = loadGraph(graphPath, wipe);
   } catch (err) {
     res.status(500).json({
       error:  'Graph loading failed',
-      detail: err instanceof Error ? err.message : String(err),
-    });
-    return;
-  }
-
-  try {
-    await ensureProjection(true);
-  } catch (err) {
-    res.status(500).json({
-      error:  'GDS projection failed',
       detail: err instanceof Error ? err.message : String(err),
     });
     return;
@@ -61,12 +50,12 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
       nodes: ingestNodes,
       edges: ingestEdges,
     },
-    neo4j: {
+    graph: {
       nodesLoaded: loaderStats.nodesLoaded,
       edgesLoaded: loaderStats.edgesLoaded,
       durationMs:  loaderStats.durationMs,
     },
-    gds: { projected: true },
+    gds: { projected: false },
   });
 });
 

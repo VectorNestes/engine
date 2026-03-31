@@ -28,7 +28,6 @@
     "dist",
     "ui",
     "data",
-    "docker",
     ".env.example",
     "!ui/node_modules",
     "!**/*.map"
@@ -50,12 +49,6 @@
     "scan:mock": "ts-node src/cli/index.ts scan --mock",
     "scan:mock:json": "ts-node src/cli/index.ts scan --mock --output data/cluster-graph.json",
     "db:generate": "ts-node src/cli/index.ts scan --mock --skip-cve --output data/cluster-graph.json",
-    "db:load": "ts-node src/db/loader.ts",
-    "db:load:mock": "npm run db:generate && ts-node src/db/loader.ts data/cluster-graph.json",
-    "db:load:wipe": "npm run db:generate && ts-node src/db/loader.ts data/cluster-graph.json --wipe",
-    "db:test": "ts-node src/db/test.ts",
-    "db:test:fresh": "ts-node src/db/test.ts --wipe",
-    "db:test:fast": "ts-node src/db/test.ts --skip-load",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run rebuild"
   },
@@ -65,7 +58,9 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "neo4j-driver": "^5.28.3",
+    "graphology": "^0.26.0",
+    "graphology-metrics": "^2.4.0",
+    "graphology-shortest-path": "^2.1.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

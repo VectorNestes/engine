@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z }            from 'zod';
 
-import { runQuery }     from '../../db/neo4j-client';
+import { getGraph }     from '../../db/graphEngine';
 import {
   explainNode,
   summariseRisk,
@@ -40,83 +40,71 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   const { minRisk } = parsed.data;
 
   try {
-    const rows = await runQuery<VulnRow>(`
-      MATCH (n:K8sNode) WHERE n.riskScore >= $minRisk
+    const graph = getGraph();
+    const vulnerabilities: any[] = [];
 
-      OPTIONAL MATCH (n)-[outR]->(outTarget:K8sNode)
-      WITH n,
-        collect(
-          CASE WHEN outR IS NOT NULL THEN {
-            relType:   type(outR),
-            toId:      outTarget.id,
-            toType:    outTarget.type,
-            toName:    outTarget.name,
-            weight:    outR.weight,
-            verbs:     outR.verbs,
-            resources: outR.resources
-          } END
-        ) AS rawOut
+    graph.forEachNode((node, attrs) => {
+      const riskScore = attrs.riskScore as number || 0;
+      if (riskScore < minRisk) return;
 
-      OPTIONAL MATCH (inSrc:K8sNode)-[inR]->(n)
-      WITH n, rawOut,
-        collect(
-          CASE WHEN inR IS NOT NULL THEN {
-            relType:  type(inR),
-            fromId:   inSrc.id,
-            fromType: inSrc.type,
-            fromName: inSrc.name,
-            weight:   inR.weight
-          } END
-        ) AS rawIn
+      const outEdges: OutEdge[] = [];
+      const inEdges: InEdge[] = [];
 
-      RETURN
-        n.id           AS id,
-        n.type         AS type,
-        n.name         AS name,
-        n.namespace    AS namespace,
-        n.riskScore    AS riskScore,
-        n.isEntryPoint AS isEntryPoint,
-        n.isCrownJewel AS isCrownJewel,
-        n.image        AS image,
-        n.cve          AS cve,
-        [e IN rawOut WHERE e IS NOT NULL] AS outEdges,
-        [e IN rawIn  WHERE e IS NOT NULL] AS inEdges
+      graph.forEachOutEdge(node, (edge, edgeAttrs, source, target) => {
+        const targetAttrs = graph.getNodeAttributes(target);
+        outEdges.push({
+          relType: edgeAttrs.type as string,
+          toId: target,
+          toType: targetAttrs.type as string,
+          toName: targetAttrs.name as string,
+          weight: edgeAttrs.weight as number,
+          verbs: edgeAttrs.verbs as string[],
+          resources: edgeAttrs.resources as string[]
+        });
+      });
 
-      ORDER BY n.riskScore DESC
-    `, { minRisk });
+      graph.forEachInEdge(node, (edge, edgeAttrs, source, target) => {
+        const sourceAttrs = graph.getNodeAttributes(source);
+        inEdges.push({
+          relType: edgeAttrs.type as string,
+          fromId: source,
+          fromType: sourceAttrs.type as string,
+          fromName: sourceAttrs.name as string,
+          weight: edgeAttrs.weight as number
+        });
+      });
 
-    const vulnerabilities = rows.map((row) => {
-      const node: ExplainerNode = {
-        id:           row.id,
-        type:         row.type,
-        name:         row.name,
-        namespace:    row.namespace,
-        riskScore:    row.riskScore,
-        isEntryPoint: row.isEntryPoint,
-        isCrownJewel: row.isCrownJewel,
-        image:        row.image,
-        cve:          row.cve,
+      const expNode: ExplainerNode = {
+        id: node,
+        type: attrs.type as string,
+        name: attrs.name as string,
+        namespace: attrs.namespace as string,
+        riskScore: riskScore,
+        isEntryPoint: !!attrs.isEntryPoint,
+        isCrownJewel: !!attrs.isCrownJewel,
+        image: attrs.image as string,
+        cve: attrs.cve as string[],
       };
 
-      const outEdges = (row.outEdges ?? []) as OutEdge[];
-      const inEdges  = (row.inEdges  ?? []) as InEdge[];
-
-      return {
-        nodeId:      row.id,
-        type:        row.type,
-        namespace:   row.namespace,
-        riskScore:   row.riskScore,
-        isEntryPoint: row.isEntryPoint,
-        isCrownJewel: row.isCrownJewel,
-        cves:        row.cve ?? [],
-        reason:      summariseRisk(node, outEdges, inEdges),
-        explanation: explainNode(node, outEdges, inEdges),
+      vulnerabilities.push({
+        nodeId: node,
+        type: attrs.type as string,
+        namespace: attrs.namespace as string,
+        riskScore: riskScore,
+        isEntryPoint: !!attrs.isEntryPoint,
+        isCrownJewel: !!attrs.isCrownJewel,
+        cves: attrs.cve || [],
+        reason: summariseRisk(expNode, outEdges, inEdges),
+        explanation: explainNode(expNode, outEdges, inEdges),
         connections: {
           out: outEdges.length,
-          in:  inEdges.length,
+          in: inEdges.length,
         },
-      };
+      });
     });
+
+    // Order by riskScore DESC
+    vulnerabilities.sort((a, b) => b.riskScore - a.riskScore);
 
     res.json({
       vulnerabilities,
@@ -127,7 +115,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         medium:         vulnerabilities.filter((v) => v.riskScore >= minRisk && v.riskScore < 6).length,
         entryPoints:    vulnerabilities.filter((v) => v.isEntryPoint).length,
         crownJewels:    vulnerabilities.filter((v) => v.isCrownJewel).length,
-        withCves:       vulnerabilities.filter((v) => v.cves.length > 0).length,
+        withCves:       vulnerabilities.filter((v) => (v.cves || []).length > 0).length,
       },
     });
   } catch (err) {
