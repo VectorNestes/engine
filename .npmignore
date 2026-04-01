@@ -17,6 +17,7 @@ coverage/
 # Data output
 *.json
 !package.json
+!data/*.json
 !ui/package.json
 !ui/package-lock.json
 !cluster-graph.json

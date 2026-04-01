@@ -36,7 +36,8 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "tsc && npm run build:fixbin",
+    "build": "tsc && npm run build:assets && npm run build:fixbin",
+    "build:assets": "node -e \"const fs=require('fs');const path=require('path');const src=path.join(process.cwd(),'src','data','mock-cluster-graph.json');const outDir=path.join(process.cwd(),'data');const dest=path.join(outDir,'mock-cluster-graph.json');fs.mkdirSync(outDir,{recursive:true});fs.copyFileSync(src,dest);console.log('Copied mock data to '+dest);\"",
     "build:fixbin": "node -e \"const f='dist/cli/index.js',fs=require('fs'),c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!/'))fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);\"",
     "build:watch": "tsc --watch",
     "clean": "rimraf dist",

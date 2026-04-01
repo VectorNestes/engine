@@ -119,10 +119,15 @@ export async function runStart(opts: StartOptions): Promise<void> {
 
   log('Starting backend...');
 
-  const backendEntry = path.join(ROOT, 'src', 'server', 'server.ts');
-  const [backendCmd, backendArgs, backendShell] = process.platform === 'win32'
-    ? ['cmd', ['/c', 'npx', 'ts-node', backendEntry], false]
-    : ['npx', ['ts-node', backendEntry], false];
+  const srcServerEntry = path.join(ROOT, 'src', 'server', 'server.ts');
+  const distServerEntry = path.join(ROOT, 'dist', 'server', 'server.js');
+  const useSourceServer = fs.existsSync(srcServerEntry);
+
+  const [backendCmd, backendArgs, backendShell] = useSourceServer
+    ? (process.platform === 'win32'
+        ? ['cmd', ['/c', 'npx', 'ts-node', srcServerEntry], false]
+        : ['npx', ['ts-node', srcServerEntry], false])
+    : ['node', [distServerEntry], false];
 
   const backend: ChildProcess = spawn(backendCmd, backendArgs, {
     cwd:   ROOT,
