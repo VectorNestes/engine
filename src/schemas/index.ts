@@ -16,17 +16,17 @@ export const IngestInputSchema = z.object({
 });
 
 export const PathsQuerySchema = z.object({
-  maxHops: HopsSchema.default(10),
+  maxHops: HopsSchema.default(5),
   limit:   z.coerce.number().int().min(1).max(200).default(50),
 });
 
 export const BlastQuerySchema = z.object({
   nodeId:  NodeIdSchema,
-  maxHops: HopsSchema.default(8),
+  maxHops: HopsSchema.default(5),
 });
 
 export const CyclesQuerySchema = z.object({
-  maxDepth: HopsSchema.default(8),
+  maxDepth: HopsSchema.default(5),
   limit:    z.coerce.number().int().min(1).max(100).default(20),
 });
 
@@ -36,7 +36,7 @@ export const CriticalQuerySchema = z.object({
 
 export const SimulateInputSchema = z.object({
   nodeId:  NodeIdSchema,
-  maxHops: HopsSchema.default(10),
+  maxHops: HopsSchema.default(5),
 });
 
 export type IngestInput    = z.infer<typeof IngestInputSchema>;

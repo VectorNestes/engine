@@ -40,7 +40,7 @@ function findAllSimplePaths(graph: Graph, source: string, target: string, maxHop
   return paths;
 }
 
-export async function findAttackPaths(maxHops = 10, limit = 50, ignoreNode?: string): Promise<PathResult[]> {
+export async function findAttackPaths(maxHops = 5, limit = 50, ignoreNode?: string): Promise<PathResult[]> {
   console.log(`\n  → Running memory BFS attack-path discovery (maxHops=${maxHops})${ignoreNode ? ' EXCLUDING ' + ignoreNode : ''}...`);
   const graph = getGraph();
   
@@ -258,7 +258,7 @@ export async function findCriticalNodes(topN = 10): Promise<CriticalNode[]> {
   return nodes.slice(0, topN);
 }
 
-export async function getBlastRadius(startNodeId: string, maxHops = 8): Promise<BlastResult[]> {
+export async function getBlastRadius(startNodeId: string, maxHops = 5): Promise<BlastResult[]> {
   console.log(`\n  → Computing memory blast radius for: ${startNodeId}`);
   const graph = getGraph();
   
