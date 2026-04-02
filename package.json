@@ -1,6 +1,6 @@
 {
   "name": "k8s-av",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Kubernetes RBAC Attack Path Visualizer — scan your cluster, detect attack paths, visualize in a local UI",
   "keywords": [
     "kubernetes",
