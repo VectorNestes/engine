@@ -30,6 +30,7 @@
     "vite": "^5.2.11"
   },
   "overrides": {
-    "use-sync-external-store": "1.2.2"
+    "use-sync-external-store": "1.2.2",
+    "react-dom/client"
   }
 }

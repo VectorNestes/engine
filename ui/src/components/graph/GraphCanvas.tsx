@@ -6,7 +6,7 @@ import {
   BackgroundVariant, MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import dagre from '@dagrejs/dagre';
+import * as dagre from '@dagrejs/dagre';
 
 import { CustomNode, type K8sNodeData } from './CustomNode';
 import { useAppStore } from '../../store/useAppStore';
