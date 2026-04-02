@@ -52,6 +52,9 @@ export async function generateReport(): Promise<ReportData> {
   const entryPoints = getEntryPoints();
   const crownJewels = getCrownJewels();
 
+  // Single-source Dijkstra: for each entry point find its cheapest route to
+  // ANY crown jewel, then deduplicate by path signature so the same route
+  // doesn't appear multiple times (fixes Issue 5).
   const dijkstraPromises: Promise<DijkstraResult | null>[] = [];
   for (const ep of entryPoints) {
     for (const cj of crownJewels) {
@@ -60,7 +63,27 @@ export async function generateReport(): Promise<ReportData> {
   }
 
   const dijkstraSettled = await Promise.all(dijkstraPromises);
-  const dijkstraPaths   = dijkstraSettled.filter((r): r is DijkstraResult => r !== null);
+  const rawDijkstra = dijkstraSettled.filter((r): r is DijkstraResult => r !== null);
+
+  // Keep only the cheapest route per entry point (single-source semantics),
+  // then deduplicate identical path node sequences.
+  const cheapestPerEntry = new Map<string, DijkstraResult>();
+  for (const r of rawDijkstra) {
+    const existing = cheapestPerEntry.get(r.sourceId);
+    if (!existing || r.totalCost < existing.totalCost) {
+      cheapestPerEntry.set(r.sourceId, r);
+    }
+  }
+
+  const seenPathSigs = new Set<string>();
+  const dijkstraPaths: DijkstraResult[] = [];
+  for (const r of cheapestPerEntry.values()) {
+    const sig = r.pathNodeIds.join('→');
+    if (!seenPathSigs.has(sig)) {
+      seenPathSigs.add(sig);
+      dijkstraPaths.push(r);
+    }
+  }
 
   const blastRadii: BlastRadiusEntry[] = await Promise.all(
     entryPoints.map(async (ep) => ({

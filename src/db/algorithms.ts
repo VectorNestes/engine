@@ -83,10 +83,31 @@ export async function findAttackPaths(maxHops = 10, limit = 50, ignoreNode?: str
         }
         
         const hops = nodeIds.length - 1;
-        const entryRisk = typeof pathNodes[0].riskScore === 'number' ? pathNodes[0].riskScore : 0;
         const crownRisk = typeof pathNodes[pathNodes.length - 1].riskScore === 'number' ? pathNodes[pathNodes.length - 1].riskScore : 0;
-        
-        const riskScore = Math.round(100.0 * (0.6 * crownRisk + 0.4 * (totalWeight / hops))) / 100.0;
+
+        // Three-axis scoring: Impact × Exploitability × Amplifiers (Issue 6)
+        const impact = crownRisk;
+        const exploitability = Math.max(1, 10 - hops * 0.8);
+
+        const edgeTypeSet = new Set(pathRels.map((r) => r.type));
+        let amplifier = 1.0;
+        if (edgeTypeSet.has('RUN_AS_ROOT'))               amplifier += 0.15;
+        if (edgeTypeSet.has('UNRESTRICTED_EGRESS'))        amplifier += 0.10;
+        if (edgeTypeSet.has('PLAINTEXT_CREDENTIAL'))       amplifier += 0.20;
+        if (edgeTypeSet.has('AUTH_BYPASS'))                amplifier += 0.25;
+        if (edgeTypeSet.has('PRIVILEGED_CONTAINER_ESCAPE') ||
+            edgeTypeSet.has('DOCKER_SOCKET_ESCAPE'))        amplifier += 0.20;
+
+        for (const pn of pathNodes) {
+          const img = (pn as unknown as Record<string,unknown>)['image'] as string | undefined;
+          if (img && (img.endsWith(':latest') || !img.includes(':'))) {
+            amplifier += 0.10;
+            break;
+          }
+        }
+
+        const raw = (impact * 0.5 + exploitability * 0.5) * Math.min(amplifier, 1.8);
+        const riskScore = Math.round(100.0 * Math.min(10, raw)) / 100.0;
         
         allPaths.push({
           entryPoint: entry,
@@ -144,40 +165,53 @@ export async function findShortestPath(sourceNodeId: string, targetNodeId: strin
   }
 }
 
-export async function detectCycles(maxDepth = 8, limit = 20): Promise<CycleResult[]> {
+// Returns the canonical rotation of a cycle: rotate so the lexicographically
+// smallest node id is first.  This prevents the same cycle from being recorded
+// multiple times when DFS starts from different nodes in the cycle.
+function canonicalCycle(nodeIds: string[]): string[] {
+  let minIdx = 0;
+  for (let i = 1; i < nodeIds.length; i++) {
+    if (nodeIds[i] < nodeIds[minIdx]) minIdx = i;
+  }
+  return [...nodeIds.slice(minIdx), ...nodeIds.slice(0, minIdx)];
+}
+
+export async function detectCycles(maxDepth = 12, limit = 20): Promise<CycleResult[]> {
   console.log(`\n  → Running memory cycle detection (maxDepth=${maxDepth})...`);
   const graph = getGraph();
-  
-  const cycles: CycleResult[] = [];
-  const globalVisited = new Set<string>();
 
-  // Simple DFS finding cycles
+  const cycles: CycleResult[] = [];
+  const seenSignatures = new Set<string>();
+
+  // DFS from each node; a real cycle requires returning to the exact start node
+  // via a path of at least 3 other distinct nodes (cycleLength >= 4).
   function dfs(start: string, current: string, path: string[], visited: Set<string>) {
-    if (path.length > maxDepth) return;
-    
+    if (path.length - 1 > maxDepth) return;
+
     graph.forEachOutNeighbor(current, (neighbor) => {
-      if (neighbor === start && path.length >= 2) {
-        // Form a cycle
-        const cycleNodeIds = [...path];
-        const relationshipTypes: string[] = [];
-        for (let i = 0; i < cycleNodeIds.length; i++) {
-          const from = cycleNodeIds[i];
-          const to = cycleNodeIds[(i + 1) % cycleNodeIds.length];
-          const edges = graph.edges(from, to);
-          if (edges.length > 0) {
-            relationshipTypes.push(graph.getEdgeAttribute(edges[0], 'type') as string);
+      if (neighbor === start && path.length >= 4) {
+        // Genuine cycle: path returns to start with at least 3 intermediate nodes
+        const cycleNodeIds = canonicalCycle(path);
+        const signature = cycleNodeIds.join('→');
+
+        if (!seenSignatures.has(signature)) {
+          seenSignatures.add(signature);
+
+          const relationshipTypes: string[] = [];
+          for (let i = 0; i < cycleNodeIds.length; i++) {
+            const from = cycleNodeIds[i];
+            const to = cycleNodeIds[(i + 1) % cycleNodeIds.length];
+            const edges = graph.edges(from, to);
+            if (edges.length > 0) {
+              relationshipTypes.push(graph.getEdgeAttribute(edges[0], 'type') as string);
+            }
           }
-        }
-        
-        // Ensure strictly unique cycle signature to avoid permutations
-        const signature = [...cycleNodeIds].sort().join(',');
-        if (!globalVisited.has(signature)) {
-            globalVisited.add(signature);
-            cycles.push({
-                cycleNodeIds,
-                relationshipTypes,
-                cycleLength: cycleNodeIds.length
-            });
+
+          cycles.push({
+            cycleNodeIds,
+            relationshipTypes,
+            cycleLength: cycleNodeIds.length,
+          });
         }
       } else if (!visited.has(neighbor)) {
         visited.add(neighbor);

@@ -1,6 +1,71 @@
 import { Node, Edge, Graph, NodeType } from './schema';
 import { RawClusterData } from './fetcher';
 
+const DANGEROUS_CAPABILITIES = [
+  'SYS_ADMIN', 'NET_ADMIN', 'SYS_PTRACE', 'SYS_MODULE',
+  'DAC_OVERRIDE', 'DAC_READ_SEARCH', 'FOWNER', 'SETUID', 'SETGID',
+  'NET_RAW', 'SYS_RAWIO', 'MKNOD', 'AUDIT_WRITE',
+];
+
+interface PodSecurityFlags {
+  isPrivileged: boolean;
+  hasDockerSock: boolean;
+  hasHostPath: string | null;   // the mount path, or null
+  hostNetwork: boolean;
+  hostPID: boolean;
+  hasDangerousCap: boolean;
+  runAsRoot: boolean;
+}
+
+function inspectPodSecurity(spec: Record<string, unknown>): PodSecurityFlags {
+  const containers = ((spec['containers'] as unknown[] | undefined) ?? []) as Array<Record<string, unknown>>;
+  const initContainers = ((spec['initContainers'] as unknown[] | undefined) ?? []) as Array<Record<string, unknown>>;
+  const allContainers = [...containers, ...initContainers];
+
+  let isPrivileged = false;
+  let hasDockerSock = false;
+  let hasHostPath: string | null = null;
+  let hasDangerousCap = false;
+  let runAsRoot = false;
+
+  for (const c of allContainers) {
+    const sc = (c['securityContext'] ?? {}) as Record<string, unknown>;
+    if (sc['privileged'] === true) isPrivileged = true;
+
+    const caps = (sc['capabilities'] ?? {}) as Record<string, unknown>;
+    const addCaps = (caps['add'] as string[] | undefined) ?? [];
+    if (addCaps.some((cap) => DANGEROUS_CAPABILITIES.includes(cap))) hasDangerousCap = true;
+
+    const runAsUser = sc['runAsUser'];
+    if (runAsUser === 0) runAsRoot = true;
+    if (sc['runAsNonRoot'] === false) runAsRoot = true;
+
+    const envs = ((c['env'] as unknown[] | undefined) ?? []) as Array<Record<string, unknown>>;
+    for (const env of envs) {
+      const val = (env['value'] as string | undefined) ?? '';
+      if (val.includes('docker.sock')) hasDockerSock = true;
+    }
+  }
+
+  const volumes = ((spec['volumes'] as unknown[] | undefined) ?? []) as Array<Record<string, unknown>>;
+  for (const vol of volumes) {
+    const hp = vol['hostPath'] as Record<string, unknown> | undefined;
+    if (hp?.['path']) {
+      const p = hp['path'] as string;
+      if (p === '/var/run/docker.sock') {
+        hasDockerSock = true;
+      } else {
+        hasHostPath = p;
+      }
+    }
+  }
+
+  const hostNetwork = spec['hostNetwork'] === true;
+  const hostPID = spec['hostPID'] === true;
+
+  return { isPrivileged, hasDockerSock, hasHostPath, hostNetwork, hostPID, hasDangerousCap, runAsRoot };
+}
+
 interface KubeMetadata {
   name: string;
   namespace: string;
@@ -113,6 +178,9 @@ export function transformToGraph(raw: RawClusterData): Graph {
     return nodeSet.has(id);
   }
 
+  // Track pod security flags for edge generation later
+  const podSecurityMap = new Map<string, PodSecurityFlags>();
+
   const podItems = safeItems(raw.pods);
   for (const item of podItems) {
     const { name, namespace, labels, annotations } = safeMeta(item);
@@ -122,13 +190,25 @@ export function transformToGraph(raw: RawClusterData): Graph {
     const firstContainer = (containers[0] ?? {}) as Record<string, unknown>;
     const image = (firstContainer['image'] as string | undefined) ?? '';
 
+    const secFlags = inspectPodSecurity(spec);
+    const isDangerous =
+      secFlags.isPrivileged ||
+      secFlags.hasDockerSock ||
+      secFlags.hasHostPath !== null ||
+      secFlags.hostNetwork ||
+      secFlags.hostPID ||
+      secFlags.hasDangerousCap;
+
+    const podId = makeId(namespace, name);
+    podSecurityMap.set(podId, secFlags);
+
     addNode({
-      id: makeId(namespace, name),
+      id: podId,
       type: 'Pod',
       name,
       namespace,
-      riskScore: 0,
-      isEntryPoint: false,
+      riskScore: isDangerous ? 7 : 0,
+      isEntryPoint: isDangerous,
       isCrownJewel: false,
       image,
       labels,
@@ -151,6 +231,29 @@ export function transformToGraph(raw: RawClusterData): Graph {
       isEntryPoint: false,
       isCrownJewel: false,
     });
+  }
+
+  // Synthetic SA inference: pods may reference SAs that were not returned by
+  // kubectl (e.g. kubernetes-dashboard SA missing from manifests).  Create a
+  // placeholder node so traversal can continue through it.
+  for (const item of podItems) {
+    const { namespace } = safeMeta(item);
+    const pod = item as Record<string, unknown>;
+    const spec = (pod['spec'] ?? {}) as Record<string, unknown>;
+    const saName = (spec['serviceAccountName'] as string | undefined) ?? 'default';
+    const saId = makeId(namespace, saName);
+    if (!hasNode(saId) && saName !== 'default') {
+      addNode({
+        id: saId,
+        type: 'ServiceAccount',
+        name: saName,
+        namespace,
+        riskScore: 3,
+        isEntryPoint: false,
+        isCrownJewel: false,
+        annotations: { 'k8s-av/synthetic': 'true' },
+      });
+    }
   }
 
   const roleItems = safeItems(raw.roles);
@@ -276,6 +379,128 @@ export function transformToGraph(raw: RawClusterData): Graph {
         type: 'USES_SERVICE_ACCOUNT',
         weight: 5,
       });
+    }
+  }
+
+  // ── Issue 3: Non-RBAC security edges from pod security flags ─────────────
+  for (const item of podItems) {
+    const { name: podName, namespace } = safeMeta(item);
+    const podId = makeId(namespace, podName);
+    const flags = podSecurityMap.get(podId);
+    if (!flags) continue;
+
+    // Each dangerous pod gets edges to itself encoding the escape vector.
+    // Weight values per spec: privileged=9, docker.sock=9, hostPath=7-9,
+    // hostNetwork=6, hostPID=7, dangerous caps=7, runAsRoot=5 (amplifier).
+    if (flags.isPrivileged) {
+      edgeSet.add({ from: podId, to: podId, type: 'PRIVILEGED_CONTAINER_ESCAPE', weight: 9 });
+    }
+    if (flags.hasDockerSock) {
+      edgeSet.add({ from: podId, to: podId, type: 'DOCKER_SOCKET_ESCAPE', weight: 9 });
+    }
+    if (flags.hasHostPath !== null) {
+      const sensitiveHostPaths = ['/etc', '/proc', '/sys', '/root', '/var/lib/kubelet', '/run/secrets'];
+      const isSensitive = sensitiveHostPaths.some((p) => flags.hasHostPath!.startsWith(p));
+      edgeSet.add({ from: podId, to: podId, type: 'HOST_PATH_MOUNT', weight: isSensitive ? 9 : 7 });
+    }
+    if (flags.hostNetwork) {
+      edgeSet.add({ from: podId, to: podId, type: 'HOST_NETWORK_NAMESPACE', weight: 6 });
+    }
+    if (flags.hostPID) {
+      edgeSet.add({ from: podId, to: podId, type: 'HOST_PID_NAMESPACE', weight: 7 });
+    }
+    if (flags.hasDangerousCap) {
+      edgeSet.add({ from: podId, to: podId, type: 'DANGEROUS_CAPABILITIES', weight: 7 });
+    }
+    if (flags.runAsRoot) {
+      edgeSet.add({ from: podId, to: podId, type: 'RUN_AS_ROOT', weight: 5 });
+    }
+  }
+
+  // ── Issue 2: AUTH_BYPASS edge for pods with --enable-skip-login arg ───────
+  for (const item of podItems) {
+    const { name: podName, namespace } = safeMeta(item);
+    const pod = item as Record<string, unknown>;
+    const spec = (pod['spec'] ?? {}) as Record<string, unknown>;
+    const containers = ((spec['containers'] as unknown[] | undefined) ?? []) as Array<Record<string, unknown>>;
+
+    for (const c of containers) {
+      const args = ((c['args'] as string[] | undefined) ?? []);
+      const cmd  = ((c['command'] as string[] | undefined) ?? []);
+      const allArgs = [...args, ...cmd];
+      if (allArgs.some((a) => a.includes('--enable-skip-login') || a.includes('--disable-auth'))) {
+        const podId = makeId(namespace, podName);
+        // AUTH_BYPASS edge: pod can skip auth to reach its SA directly
+        const saName = (spec['serviceAccountName'] as string | undefined) ?? 'default';
+        const saId = makeId(namespace, saName);
+        if (hasNode(podId) && hasNode(saId)) {
+          edgeSet.add({ from: podId, to: saId, type: 'AUTH_BYPASS', weight: 9 });
+        }
+      }
+    }
+  }
+
+  // ── Issue 4: UNRESTRICTED_EGRESS + PLAINTEXT_CREDENTIAL detection ─────────
+  // Collect which namespaces have at least one NetworkPolicy with an egress rule.
+  const namespacesWithEgressPolicy = new Set<string>();
+  const networkPolicies = safeItems((raw as unknown as Record<string, unknown>)['networkPolicies'] ?? { items: [] });
+  for (const np of networkPolicies) {
+    const { namespace } = safeMeta(np);
+    const policy = np as Record<string, unknown>;
+    const spec = (policy['spec'] ?? {}) as Record<string, unknown>;
+    const egress = spec['egress'] as unknown[] | undefined;
+    if (Array.isArray(egress) && egress.length > 0) {
+      namespacesWithEgressPolicy.add(namespace);
+    }
+  }
+
+  // Namespaces with no egress NetworkPolicy get UNRESTRICTED_EGRESS edges
+  // between all pods in that namespace (pod → pod lateral movement).
+  const podsByNamespace = new Map<string, string[]>();
+  for (const item of podItems) {
+    const { name, namespace } = safeMeta(item);
+    const existing = podsByNamespace.get(namespace) ?? [];
+    existing.push(makeId(namespace, name));
+    podsByNamespace.set(namespace, existing);
+  }
+
+  for (const [ns, podIds] of podsByNamespace.entries()) {
+    if (namespacesWithEgressPolicy.has(ns)) continue; // egress policy present, skip
+    for (const fromId of podIds) {
+      for (const toId of podIds) {
+        if (fromId === toId) continue;
+        if (hasNode(fromId) && hasNode(toId)) {
+          edgeSet.add({ from: fromId, to: toId, type: 'UNRESTRICTED_EGRESS', weight: 5 });
+        }
+      }
+    }
+  }
+
+  // PLAINTEXT_CREDENTIAL: detect env vars that look like passwords/tokens/keys
+  const credentialEnvPattern = /password|passwd|secret|token|key|api[_-]?key|credential|auth/i;
+  for (const item of podItems) {
+    const { name: podName, namespace } = safeMeta(item);
+    const pod = item as Record<string, unknown>;
+    const spec = (pod['spec'] ?? {}) as Record<string, unknown>;
+    const containers = ((spec['containers'] as unknown[] | undefined) ?? []) as Array<Record<string, unknown>>;
+    const podId = makeId(namespace, podName);
+
+    for (const c of containers) {
+      const envs = ((c['env'] as unknown[] | undefined) ?? []) as Array<Record<string, unknown>>;
+      for (const env of envs) {
+        const envName = (env['name'] as string | undefined) ?? '';
+        const envVal  = (env['value'] as string | undefined) ?? '';
+        // Only flag literal values (not valueFrom references) that match cred patterns
+        if (credentialEnvPattern.test(envName) && envVal.length > 0 && !('valueFrom' in env)) {
+          // Edge from pod to any secret whose name matches the credential name
+          for (const n of nodes) {
+            if (n.type === 'Secret' && n.namespace === namespace) {
+              edgeSet.add({ from: podId, to: n.id, type: 'PLAINTEXT_CREDENTIAL', weight: 8 });
+            }
+          }
+          break; // one per container is enough
+        }
+      }
     }
   }
 
