@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    include: ['use-sync-external-store/shim/with-selector.js'],
+    include: ['use-sync-external-store/shim/with-selector.js', 'react-dom', 'react-dom/client', 'react', '@dagrejs/dagre'],
     esbuildOptions: {
       preserveSymlinks: true,
     },
