@@ -12,13 +12,13 @@
     "cli"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/your-org/k8s-av#readme",
+  "homepage": "https://github.com/VectorNestes/engine#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/k8s-av.git"
+    "url": "https://github.com/VectorNestes/engine"
   },
   "bugs": {
-    "url": "https://github.com/your-org/k8s-av/issues"
+    "url": "https://github.com/VectorNestes/engine/issues"
   },
   "bin": {
     "k8s-av": "dist/cli/index.js"
