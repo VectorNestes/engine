@@ -129,7 +129,7 @@ Validation (Zod Schema)
         ↓
 cluster-graph.json
         ↓
-Neo4j Database
+Graphology
         ↓
 GDS Graph Projection
         ↓
@@ -147,7 +147,7 @@ src/
 │
 ├── cli/                # CLI commands (scan, ingest, report)
 ├── core/               # Core logic (fetch, transform, CVE, attack-path)
-├── db/                 # Neo4j + GDS integration
+├── db/                 # Graphology + GDS integration
 ├── services/           # Business logic (ingestion, reporting)
 ├── server/             # Express API
 ├── schemas/            # Validation schemas
@@ -159,8 +159,8 @@ src/
 ## 🧪 Technologies Used
 
 * **TypeScript / Node.js**
-* **Neo4j (Graph Database)**
-* **Neo4j Graph Data Science (GDS)**
+* **Graphology (Graph Database)**
+* **Graphology Graph Data Science (GDS)**
 * **Express.js**
 * **Zod**
 * **Axios**
@@ -186,14 +186,7 @@ npm install
 
 ---
 
-### 3. Start Neo4j (Docker)
 
-```bash
-cd docker
-docker-compose up -d
-```
-
----
 
 ### 4. Run the project
 
@@ -268,7 +261,7 @@ npx ts-node src/server/server.ts
 
 ## 👨‍💻 Author
 
-**Vardan Singhal**
+**Labyrinth**
 
 ---
 
