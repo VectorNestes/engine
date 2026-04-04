@@ -1,6 +1,6 @@
 {
   "name": "k8s-av",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "description": "Kubernetes RBAC Attack Path Visualizer — scan your cluster, detect attack paths, visualize in a local UI",
   "keywords": [
     "kubernetes",
@@ -17,8 +17,8 @@
     "type": "git",
     "url": "https://github.com/VectorNestes/engine"
   },
-  "Documentation":{
-    "url":"https://frontend-seven-steel-14.vercel.app/"
+  "Documentation": {
+    "url": "https://frontend-seven-steel-14.vercel.app/"
   },
   "bugs": {
     "url": "https://github.com/VectorNestes/engine/issues"
